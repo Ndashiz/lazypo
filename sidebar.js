@@ -32,7 +32,7 @@
       id: 'sprint',
       icon: '📋',
       label: 'Sprint Planning',
-      url: 'sprintplanning.html',
+      url: 'sprintplanner.html',
       desc: 'Planifie tes sprints et génère automatiquement tes slides de présentation.'
     },
     {
