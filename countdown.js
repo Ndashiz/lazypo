@@ -12,8 +12,8 @@
      FALLBACK DATA (si projet.json absent)
   ═══════════════════════════════════════════════════ */
   const FALLBACK_PROJECTS = [
-    { name: 'REACH',       date: '2025-09-30', color: 'ring-amber', totalDays: 180 },
-    { name: 'PI PLANNING', date: '2025-06-15', color: 'ring-white', totalDays: 90  },
+    { name: 'REACH',       date: '2026-06-03', color: 'ring-amber', totalDays: 180 },
+    { name: 'PI PLANNING', date: '2026-06-15', color: 'ring-white', totalDays: 90  },
   ];
 
   /* ═══════════════════════════════════════════════════
