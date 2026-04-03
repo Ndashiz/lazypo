@@ -166,7 +166,7 @@
 
     // Update product name
     document.getElementById('lp-popup-product').textContent =
-      productName || 'Bientôt disponible';
+      productName || 'Coming soon';
 
     // Show popup + backdrop
     popup.classList.add('show');

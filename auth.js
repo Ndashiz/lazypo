@@ -361,10 +361,10 @@
     overlay.innerHTML = `
       <div id="authGuardCard">
         <div class="ag-icon">🔒</div>
-        <h2>Connexion requise</h2>
-        <p>Il faut se connecter à son compte pour accéder aux options du site.</p>
-        <a href="login.html" class="ag-btn-login">Se connecter</a>
-        <a href="index.html" class="ag-btn-back">← Retour à l'accueil</a>
+        <h2>Sign in required</h2>
+        <p>You need to sign in to your account to access this feature.</p>
+        <a href="login.html" class="ag-btn-login">Sign in</a>
+        <a href="index.html" class="ag-btn-back">← Back to home</a>
       </div>`;
     document.body.appendChild(overlay);
     // block scroll

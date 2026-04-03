@@ -16,9 +16,9 @@
     {
       id: 'home',
       icon: '🏠',
-      label: 'Accueil',
+      label: 'Home',
       url: 'index.html',
-      desc: 'Retour à la page principale de LazyPO.'
+      desc: 'Back to the LazyPO main page.'
     },
     { divider: true },
     {
@@ -26,35 +26,35 @@
       icon: '✉️',
       label: 'Scope of Work',
       url: 'lazypo_generator.html',
-      desc: 'Génère tes emails de Scope of Work professionnels. Export .eml prêt pour Outlook.'
+      desc: 'Generate professional Scope of Work emails. Export as .eml ready for Outlook.'
     },
     {
       id: 'sprint',
       icon: '📋',
       label: 'Sprint Planning',
       url: 'sprintplanner.html',
-      desc: 'Planifie tes sprints et génère automatiquement tes slides de présentation.'
+      desc: 'Plan your sprints and auto-generate your presentation slides.'
     },
     {
       id: 'jira',
       icon: '🎫',
       label: 'Jira',
       url: 'jirarepo.html',
-      desc: 'Crée et gère tes tickets Jira rapidement sans quitter ton workflow.'
+      desc: 'Create and manage your Jira queries without leaving your workflow.'
     },
     {
       id: 'minutehub',
       icon: '📝',
       label: 'Minute Hub',
       url: null,
-      desc: 'Centralise tes compte-rendus de réunion en un clin d\'œil.'
+      desc: 'Centralise all your meeting notes in one click.'
     },
     {
       id: 'focusfm',
       icon: '🎯',
       label: 'Focus FM',
       url: null,
-      desc: 'Garde le focus sur tes priorités et booste ta productivité.'
+      desc: 'Stay focused on your priorities and ship faster.'
     },
     { divider: true },
     {
@@ -62,7 +62,7 @@
       icon: '👤',
       label: 'My Account',
       url: 'account.html',
-      desc: 'Gérer ton profil, avatar et mot de passe.'
+      desc: 'Manage your profile, avatar and password.'
     }
   ];
 
@@ -335,7 +335,7 @@
     <div class="sb-overlay" id="sb-overlay"></div>
 
     <aside class="sb" id="sb-sidebar">
-      <a href="index.html" class="sb-logo-wrap" aria-label="LazyPO — Accueil">
+      <a href="index.html" class="sb-logo-wrap" aria-label="LazyPO — Home">
         <span class="sb-logo-star">✦</span>
         <span class="sb-logo-name">LazyPO</span>
       </a>

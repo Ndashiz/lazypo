@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="en">
 <head>
   <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
   <meta charset="UTF-8">
@@ -215,10 +215,10 @@
   <div class="spacer"></div>
 
   <div class="actions">
-    <div id="status" class="status">Sauvegardé</div>
+    <div id="status" class="status">Saved</div>
     <button class="header-btn" onclick="focusForm()">
       <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" fill="none"/></svg>
-      Ajouter
+      Add
     </button>
   </div>
 </header>
@@ -227,8 +227,8 @@
   <h1>💾 Jira Query Saver</h1>
 
   <div class="form">
-    <input type="text" id="name" placeholder="Nom de la query" />
-    <textarea id="query" placeholder="Ta JQL ici..."></textarea>
+    <input type="text" id="name" placeholder="Query name" />
+    <textarea id="query" placeholder="Your JQL here..."></textarea>
 
     <select id="tag">
       <option value="DPnxt">DPnxt</option>
@@ -236,7 +236,7 @@
       <option value="PB">PB</option>
     </select>
 
-    <button onclick="addQuery()">Ajouter</button>
+    <button onclick="addQuery()">Add</button>
   </div>
 
   <div id="groups"></div>
@@ -275,8 +275,8 @@
           <h3>${q.name}</h3>
           <p>${q.query}</p>
           <div class="actions">
-            <button class="small-btn copy" onclick="copyQuery(${realIndex})">Copier</button>
-            <button class="small-btn delete" onclick="deleteQuery(${realIndex})">Supprimer</button>
+            <button class="small-btn copy" onclick="copyQuery(${realIndex})">Copy</button>
+            <button class="small-btn delete" onclick="deleteQuery(${realIndex})">Delete</button>
           </div>
         `;
 
@@ -304,7 +304,7 @@
     const tag = document.getElementById('tag').value;
 
     if (!name || !query) {
-      alert('Remplis les champs !');
+      alert('Please fill in all fields!');
       return;
     }
 
@@ -330,7 +330,7 @@
   function copyQuery(index) {
     const queries = JSON.parse(localStorage.getItem('jiraQueries') || '[]');
     navigator.clipboard.writeText(queries[index].query);
-    alert('Query copiée !');
+    alert('Query copied!');
   }
 
   loadQueries();
