@@ -43,6 +43,13 @@
       desc: 'Crée et gère tes tickets Jira rapidement sans quitter ton workflow.'
     },
     {
+      id: 'livenote',
+      icon: '📝',
+      label: 'LiveNote',
+      url: 'livenote.html',
+      desc: 'Éditeur collaboratif en temps réel — écrivez ensemble, instantanément.'
+    },
+    {
       id: 'minutehub',
       icon: '📝',
       label: 'Minute Hub',

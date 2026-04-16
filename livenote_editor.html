@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<!--
+  ═══════════════════════════════════════════════════════════════
+  LiveNote Editor — Real-time collaborative editor
+  ═══════════════════════════════════════════════════════════════
+
+  SUPABASE SETUP  (run once in Supabase SQL Editor)
+  ───────────────────────────────────────────────────────────────
+
+  -- 1. Create documents table
+  create table public.livenote_docs (
+    id           uuid default gen_random_uuid() primary key,
+    title        text not null default 'Sans titre',
+    content      text default '',
+    created_by   uuid references auth.users(id) on delete set null,
+    created_at   timestamptz default now(),
+    updated_at   timestamptz default now()
+  );
+
+  -- 2. Enable RLS
+  alter table public.livenote_docs enable row level security;
+
+  -- 3. Policies (authenticated users can read/create/update; only creator can delete)
+  create policy "livenote_read" on public.livenote_docs
+    for select using (auth.uid() is not null);
+
+  create policy "livenote_create" on public.livenote_docs
+    for insert with check (auth.uid() = created_by);
+
+  create policy "livenote_update" on public.livenote_docs
+    for update using (auth.uid() is not null);
+
+  create policy "livenote_delete" on public.livenote_docs
+    for delete using (auth.uid() = created_by);
+
+  -- 4. Auto-update updated_at on every save
+  create or replace function update_livenote_updated_at()
+  returns trigger language plpgsql as $$
+  begin new.updated_at = now(); return new; end; $$;
+
+  create trigger livenote_updated_at
+    before update on public.livenote_docs
+    for each row execute function update_livenote_updated_at();
+
+  -- 5. Enable Realtime on this table (Dashboard → Database → Replication → livenote_docs)
+  --    Or run: alter publication supabase_realtime add table public.livenote_docs;
+  ═══════════════════════════════════════════════════════════════
+-->
+<script>
+  const path = window.location.pathname;
+  const lower = path.toLowerCase();
+  if (path !== lower) window.location.replace(lower + window.location.search);
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LiveNote — LazyPO</title>
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Quill editor -->
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #0c0c0c;
+  --surface:  #161616;
+  --surface2: #1c1c1c;
+  --border:   #222222;
+  --border2:  #2a2a2a;
+  --accent:   #3b82f6;
+  --accent2:  #60a5fa;
+  --text:     #f0f0f0;
+  --muted:    #6b6b6b;
+  --r:        10px;
+}
+
+html, body {
+  height: 100%; overflow: hidden;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg); color: var(--text);
+}
+
+/* ══════════════════════════════════════
+   LAYOUT — full viewport, no scroll on body
+   sidebar.js adds 64px padding-left
+══════════════════════════════════════ */
+.editor-shell {
+  display: flex; flex-direction: column;
+  height: 100vh;
+}
+
+/* ── Top bar ── */
+.topbar {
+  display: flex; align-items: center; gap: 12px;
+  padding: 0 20px;
+  height: 54px; flex-shrink: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: relative; z-index: 10;
+}
+
+.btn-back {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 10px; border-radius: 8px;
+  background: transparent; border: 1px solid transparent;
+  color: var(--muted); font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  text-decoration: none; flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.btn-back:hover { background: var(--surface2); border-color: var(--border2); color: var(--text); }
+
+.title-input {
+  flex: 1; min-width: 0;
+  background: transparent; border: none; outline: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 16px; font-weight: 600; color: var(--text);
+  padding: 6px 8px; border-radius: 6px;
+  transition: background 0.15s;
+}
+.title-input:hover { background: var(--surface2); }
+.title-input:focus { background: var(--surface2); }
+.title-input::placeholder { color: var(--muted); }
+
+/* ── Presence pills ── */
+.presence-bar {
+  display: flex; align-items: center; gap: 4px; flex-shrink: 0;
+}
+.presence-pill {
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff;
+  border: 2px solid var(--bg);
+  position: relative;
+  transition: transform 0.2s;
+  cursor: default;
+  flex-shrink: 0;
+}
+.presence-pill:hover { transform: scale(1.15); z-index: 1; }
+.presence-pill[title]:hover::after {
+  content: attr(title);
+  position: absolute; bottom: calc(100% + 6px); left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text); font-size: 11px; font-weight: 500;
+  padding: 4px 8px; border-radius: 6px; white-space: nowrap;
+  pointer-events: none;
+}
+.presence-pill + .presence-pill { margin-left: -8px; }
+.presence-count {
+  font-size: 12px; color: var(--muted); margin-left: 6px;
+  white-space: nowrap;
+}
+
+/* ── Action buttons ── */
+.btn-share {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 14px; border-radius: 8px;
+  background: rgba(59,130,246,0.12); border: 1px solid rgba(96,165,250,0.2);
+  color: var(--accent2); font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: background 0.15s, transform 0.15s;
+  flex-shrink: 0;
+}
+.btn-share:hover { background: rgba(59,130,246,0.2); transform: translateY(-1px); }
+
+.btn-export {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 12px; border-radius: 8px;
+  background: transparent; border: 1px solid var(--border2);
+  color: var(--muted); font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.btn-export:hover { background: var(--surface2); color: var(--text); }
+
+/* ── Quill toolbar dark theme ── */
+#toolbar {
+  background: var(--surface) !important;
+  border: none !important;
+  border-bottom: 1px solid var(--border) !important;
+  padding: 6px 16px !important;
+  flex-shrink: 0;
+}
+
+.ql-toolbar.ql-snow .ql-formats {
+  margin-right: 12px;
+}
+
+.ql-toolbar.ql-snow button,
+.ql-toolbar.ql-snow .ql-picker-label {
+  color: var(--muted) !important;
+}
+.ql-toolbar.ql-snow button:hover,
+.ql-toolbar.ql-snow .ql-picker-label:hover,
+.ql-toolbar.ql-snow button.ql-active,
+.ql-toolbar.ql-snow .ql-picker-label.ql-active {
+  color: var(--text) !important;
+}
+.ql-toolbar.ql-snow .ql-stroke { stroke: var(--muted) !important; }
+.ql-toolbar.ql-snow .ql-fill { fill: var(--muted) !important; }
+.ql-toolbar.ql-snow button:hover .ql-stroke,
+.ql-toolbar.ql-snow button.ql-active .ql-stroke { stroke: var(--text) !important; }
+.ql-toolbar.ql-snow button:hover .ql-fill,
+.ql-toolbar.ql-snow button.ql-active .ql-fill { fill: var(--text) !important; }
+
+.ql-toolbar.ql-snow .ql-picker-options {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border2) !important;
+  border-radius: 8px !important;
+}
+.ql-toolbar.ql-snow .ql-picker-item { color: var(--text) !important; }
+.ql-toolbar.ql-snow .ql-picker-item:hover { background: var(--faint, #2e2e2e) !important; }
+
+/* ── Editor area ── */
+.editor-wrap {
+  flex: 1; overflow: hidden; position: relative;
+  display: flex; flex-direction: column;
+}
+
+.ql-container.ql-snow {
+  flex: 1;
+  border: none !important;
+  overflow-y: auto;
+  font-size: 16px;
+  background: var(--bg) !important;
+}
+
+.ql-editor {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 48px 32px 120px !important;
+  color: var(--text) !important;
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: 16px !important;
+  line-height: 1.75 !important;
+  min-height: 100%;
+}
+.ql-editor.ql-blank::before {
+  color: var(--muted) !important;
+  font-style: normal !important;
+  font-size: 16px;
+  left: 32px !important;
+}
+
+/* Headings */
+.ql-editor h1 { font-size: 2em; font-weight: 700; color: var(--text); margin-bottom: 0.4em; }
+.ql-editor h2 { font-size: 1.5em; font-weight: 600; color: var(--text); margin-bottom: 0.4em; }
+.ql-editor h3 { font-size: 1.2em; font-weight: 600; color: #c0c0c0; margin-bottom: 0.4em; }
+
+/* Lists */
+.ql-editor ul > li::before { color: var(--accent2) !important; }
+.ql-editor ol > li::before { color: var(--accent2) !important; }
+
+/* Links */
+.ql-editor a { color: var(--accent2); }
+
+/* Code */
+.ql-editor code, .ql-editor pre {
+  background: var(--surface2) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 6px !important;
+  color: #93c5fd !important;
+  font-family: 'DM Mono', monospace !important;
+}
+
+/* Blockquote */
+.ql-editor blockquote {
+  border-left: 3px solid var(--accent) !important;
+  color: var(--muted) !important;
+  margin-left: 0 !important;
+  padding-left: 16px !important;
+}
+
+/* Scrollbar */
+.ql-container::-webkit-scrollbar { width: 6px; }
+.ql-container::-webkit-scrollbar-track { background: transparent; }
+.ql-container::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+.ql-container::-webkit-scrollbar-thumb:hover { background: #444; }
+
+/* ── Status bar ── */
+.statusbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 20px; height: 32px; flex-shrink: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  font-size: 11.5px; font-family: 'DM Mono', monospace;
+  color: var(--muted);
+}
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--muted); flex-shrink: 0;
+  transition: background 0.3s;
+}
+.status-dot.connected { background: #34d399; box-shadow: 0 0 6px rgba(52,211,153,0.5); }
+.status-dot.syncing   { background: var(--accent2); animation: blink 0.7s ease infinite; }
+.status-dot.error     { background: #f87171; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.statusbar-sep { width: 1px; height: 14px; background: var(--border); }
+
+/* ── Toast ── */
+#toast {
+  position: fixed; bottom: 52px; left: 50%; transform: translateX(-50%) translateY(80px);
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text); font-size: 13px; font-weight: 500;
+  padding: 10px 18px; border-radius: 100px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  z-index: 999; white-space: nowrap; pointer-events: none;
+}
+#toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ── Loading overlay ── */
+#loadingOverlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 14px;
+  transition: opacity 0.4s;
+}
+#loadingOverlay.hidden { opacity: 0; pointer-events: none; }
+.loading-spinner {
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 2px solid var(--border2);
+  border-top-color: var(--accent);
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-label { font-size: 13px; color: var(--muted); }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .btn-export { display: none; }
+  .ql-editor { padding: 24px 16px 80px !important; }
+}
+@media (max-width: 500px) {
+  .btn-share span { display: none; }
+}
+</style>
+</head>
+<body>
+
+<script src="sidebar.js"></script>
+<script src="auth.js"></script>
+
+<!-- Loading overlay -->
+<div id="loadingOverlay">
+  <div class="loading-spinner"></div>
+  <div class="loading-label">Chargement du document…</div>
+</div>
+
+<!-- Main shell -->
+<div class="editor-shell">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <a href="livenote.html" class="btn-back">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      Docs
+    </a>
+
+    <input type="text" class="title-input" id="titleInput" value="Sans titre" placeholder="Titre du document…" maxlength="120">
+
+    <div class="presence-bar" id="presenceBar"></div>
+    <span class="presence-count" id="presenceCount"></span>
+
+    <button class="btn-export" id="btnExport" title="Copier le texte">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+      Copier
+    </button>
+
+    <button class="btn-share" id="btnShare">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+      <span>Partager</span>
+    </button>
+  </div>
+
+  <!-- Quill toolbar (injected here by Quill) -->
+  <div id="toolbar">
+    <span class="ql-formats">
+      <select class="ql-header">
+        <option value="1">Titre 1</option>
+        <option value="2">Titre 2</option>
+        <option value="3">Titre 3</option>
+        <option selected>Normal</option>
+      </select>
+    </span>
+    <span class="ql-formats">
+      <button class="ql-bold"></button>
+      <button class="ql-italic"></button>
+      <button class="ql-underline"></button>
+      <button class="ql-strike"></button>
+    </span>
+    <span class="ql-formats">
+      <button class="ql-list" value="ordered"></button>
+      <button class="ql-list" value="bullet"></button>
+    </span>
+    <span class="ql-formats">
+      <button class="ql-blockquote"></button>
+      <button class="ql-code-block"></button>
+    </span>
+    <span class="ql-formats">
+      <button class="ql-link"></button>
+    </span>
+    <span class="ql-formats">
+      <button class="ql-clean"></button>
+    </span>
+  </div>
+
+  <!-- Editor -->
+  <div class="editor-wrap">
+    <div id="quill-editor"></div>
+  </div>
+
+  <!-- Status bar -->
+  <div class="statusbar">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="statusText">Connexion…</span>
+    <div class="statusbar-sep"></div>
+    <span id="wordCount">0 mots</span>
+    <div class="statusbar-sep"></div>
+    <span id="saveStatus">Non sauvegardé</span>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   LiveNote Editor
+   ─ Real-time collaborative editor via Supabase Realtime
+   ─ Quill.js for rich text editing
+   ─ CRDT-lite: broadcast deltas, debounced save to DB
+═══════════════════════════════════════════════════════════════ */
+
+/* ── User color palette ── */
+const COLORS = [
+  '#3b82f6','#10b981','#f59e0b','#ef4444',
+  '#8b5cf6','#ec4899','#06b6d4','#84cc16',
+  '#f97316','#a855f7'
+];
+function pickColor(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (Math.imul(31, h) + str.charCodeAt(i)) | 0;
+  return COLORS[Math.abs(h) % COLORS.length];
+}
+
+/* ── Helpers ── */
+function toast(msg, duration = 2800) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), duration);
+}
+
+function setStatus(state, text) {
+  const dot  = document.getElementById('statusDot');
+  const label = document.getElementById('statusText');
+  dot.className = `status-dot ${state}`;
+  label.textContent = text;
+}
+
+function setSaveStatus(text) {
+  document.getElementById('saveStatus').textContent = text;
+}
+
+function updateWordCount(quill) {
+  const text = quill.getText().trim();
+  const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+  document.getElementById('wordCount').textContent = `${words} mot${words !== 1 ? 's' : ''}`;
+}
+
+/* ── Presence render ── */
+function renderPresence(presences) {
+  const bar   = document.getElementById('presenceBar');
+  const count = document.getElementById('presenceCount');
+  const list  = Object.values(presences).flat();
+  const max   = 4;
+  const shown = list.slice(0, max);
+  const extra = list.length - shown.length;
+
+  bar.innerHTML = shown.map(p => `
+    <div class="presence-pill" style="background:${p.color}" title="${escHtml(p.username)}">
+      ${escHtml(p.username.charAt(0).toUpperCase())}
+    </div>`).join('');
+
+  if (extra > 0) {
+    bar.innerHTML += `
+      <div class="presence-pill" style="background:#444" title="${extra} autres">+${extra}</div>`;
+  }
+
+  const n = list.length;
+  count.textContent = n > 0
+    ? `${n} en ligne`
+    : '';
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN
+═══════════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', async () => {
+
+  /* ── Auth guard ── */
+  const session = await LazyAuth.requireAuthOrPopup();
+  if (!session) return;
+
+  const user   = session.user;
+  const profile = await LazyAuth.getProfile(user.id);
+  const username = profile?.username || user.email?.split('@')[0] || 'Anonyme';
+  const myColor  = pickColor(user.id);
+
+  /* ── Get doc ID from URL ── */
+  const params = new URLSearchParams(window.location.search);
+  const docId  = params.get('id');
+
+  if (!docId) {
+    // No ID → create a new doc and redirect
+    const { data, error } = await sb
+      .from('livenote_docs')
+      .insert({ title: 'Sans titre', created_by: user.id })
+      .select().single();
+
+    if (error) {
+      document.getElementById('loadingOverlay').innerHTML =
+        `<div style="color:#f87171;font-size:14px">Erreur: ${error.message}</div>`;
+      return;
+    }
+    window.location.replace(`livenote_editor.html?id=${data.id}`);
+    return;
+  }
+
+  /* ── Load document ── */
+  const { data: doc, error: docError } = await sb
+    .from('livenote_docs')
+    .select('*')
+    .eq('id', docId)
+    .single();
+
+  if (docError || !doc) {
+    document.getElementById('loadingOverlay').innerHTML = `
+      <div style="text-align:center;color:var(--muted)">
+        <div style="font-size:32px;margin-bottom:12px">🔍</div>
+        <div style="font-size:14px">Document introuvable</div>
+        <a href="livenote.html" style="color:#60a5fa;font-size:13px;margin-top:10px;display:block">
+          ← Retour à mes documents
+        </a>
+      </div>`;
+    return;
+  }
+
+  /* ── Update page title ── */
+  document.title = `${doc.title || 'Sans titre'} — LiveNote`;
+  document.getElementById('titleInput').value = doc.title || 'Sans titre';
+
+  /* ── Init Quill ── */
+  const quill = new Quill('#quill-editor', {
+    theme: 'snow',
+    modules: { toolbar: '#toolbar' },
+    placeholder: 'Commence à écrire…',
+  });
+
+  // Load saved content
+  if (doc.content) {
+    try {
+      const delta = JSON.parse(doc.content);
+      quill.setContents(delta, 'api');
+    } catch (e) {
+      // Fallback: treat as plain text
+      quill.setText(doc.content, 'api');
+    }
+  }
+
+  updateWordCount(quill);
+
+  /* ── Hide loading overlay ── */
+  const overlay = document.getElementById('loadingOverlay');
+  overlay.classList.add('hidden');
+  setTimeout(() => overlay.remove(), 500);
+
+  /* ── Auto-save logic ── */
+  let saveTimer = null;
+  let isSaving  = false;
+  let isDirty   = false;
+
+  async function saveDoc() {
+    if (isSaving) return;
+    isSaving = true;
+    setSaveStatus('Sauvegarde…');
+    document.getElementById('statusDot').classList.add('syncing');
+
+    const content = JSON.stringify(quill.getContents());
+    const { error } = await sb
+      .from('livenote_docs')
+      .update({ content })
+      .eq('id', docId);
+
+    isSaving = false;
+    isDirty  = false;
+    if (error) {
+      setSaveStatus('Erreur de sauvegarde');
+    } else {
+      const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      setSaveStatus(`Sauvegardé à ${now}`);
+      document.getElementById('statusDot').classList.remove('syncing');
+    }
+  }
+
+  function scheduleSave() {
+    isDirty = true;
+    setSaveStatus('Non sauvegardé');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveDoc, 2000);
+  }
+
+  /* ── Supabase Realtime ── */
+  const channelName = `livenote:${docId}`;
+  let isApplyingRemote = false;
+
+  const channel = sb.channel(channelName, {
+    config: {
+      broadcast: { self: false },
+      presence:  { key: user.id }
+    }
+  });
+
+  /* Listen for deltas from other users */
+  channel.on('broadcast', { event: 'delta' }, ({ payload }) => {
+    if (payload.userId === user.id) return; // ignore own echoes
+    isApplyingRemote = true;
+    quill.updateContents(payload.delta, 'api');
+    isApplyingRemote = false;
+    updateWordCount(quill);
+  });
+
+  /* Listen for full-doc sync (sent when new user joins) */
+  channel.on('broadcast', { event: 'full-doc' }, ({ payload }) => {
+    if (payload.forUserId !== user.id) return; // only apply if addressed to me
+    isApplyingRemote = true;
+    try {
+      quill.setContents(payload.delta, 'api');
+    } catch (e) { /* ignore */ }
+    isApplyingRemote = false;
+    updateWordCount(quill);
+  });
+
+  /* Presence sync */
+  channel.on('presence', { event: 'sync' }, () => {
+    const state = channel.presenceState();
+    renderPresence(state);
+  });
+
+  /* New user joined → oldest user sends full doc state */
+  channel.on('presence', { event: 'join' }, ({ newPresences }) => {
+    const state      = channel.presenceState();
+    const allPresent = Object.values(state).flat();
+    const myEntry    = allPresent.find(p => p.userId === user.id);
+
+    // Am I the oldest connected user? (smallest joinTime)
+    const isHost = myEntry && allPresent.every(p => p.joinTime >= myEntry.joinTime);
+
+    if (isHost && newPresences.length > 0) {
+      newPresences.forEach(async (np) => {
+        await channel.send({
+          type: 'broadcast',
+          event: 'full-doc',
+          payload: {
+            forUserId: np.userId,
+            delta: quill.getContents()
+          }
+        });
+      });
+    }
+  });
+
+  /* Subscribe & track presence */
+  channel.subscribe(async (status) => {
+    if (status === 'SUBSCRIBED') {
+      setStatus('connected', 'Connecté');
+      await channel.track({
+        userId:   user.id,
+        username: username,
+        color:    myColor,
+        joinTime: Date.now()
+      });
+    } else if (status === 'CHANNEL_ERROR') {
+      setStatus('error', 'Erreur de connexion');
+    } else if (status === 'TIMED_OUT') {
+      setStatus('error', 'Connexion perdue');
+    } else {
+      setStatus('', 'Connexion…');
+    }
+  });
+
+  /* ── Quill change → broadcast delta ── */
+  quill.on('text-change', async (delta, _old, source) => {
+    updateWordCount(quill);
+
+    if (source !== 'user' || isApplyingRemote) return;
+
+    scheduleSave();
+
+    // Broadcast to peers
+    await channel.send({
+      type: 'broadcast',
+      event: 'delta',
+      payload: { delta, userId: user.id }
+    });
+  });
+
+  /* ── Title save ── */
+  let titleTimer = null;
+  const titleInput = document.getElementById('titleInput');
+
+  titleInput.addEventListener('input', () => {
+    document.title = `${titleInput.value || 'Sans titre'} — LiveNote`;
+    clearTimeout(titleTimer);
+    titleTimer = setTimeout(async () => {
+      await sb.from('livenote_docs').update({ title: titleInput.value || 'Sans titre' }).eq('id', docId);
+    }, 1200);
+  });
+
+  /* ── Share button ── */
+  document.getElementById('btnShare').addEventListener('click', async () => {
+    const url = `${window.location.origin}${window.location.pathname}?id=${docId}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      toast('Lien copié dans le presse-papier !');
+    } catch {
+      prompt('Copie ce lien :', url);
+    }
+  });
+
+  /* ── Export (copy text) ── */
+  document.getElementById('btnExport').addEventListener('click', async () => {
+    const text = quill.getText();
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('Texte copié dans le presse-papier');
+    } catch {
+      toast('Impossible de copier');
+    }
+  });
+
+  /* ── Save on page unload ── */
+  window.addEventListener('beforeunload', (e) => {
+    if (isDirty) {
+      saveDoc();
+      e.preventDefault();
+    }
+  });
+
+  /* ── Keyboard shortcuts ── */
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      saveDoc();
+      toast('Document sauvegardé');
+    }
+  });
+
+  // Initial status
+  setSaveStatus('Chargé');
+});
+</script>
+</body>
+</html>
