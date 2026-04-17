@@ -289,6 +289,44 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
 .exp-lnk{display:inline-block;margin-top:16px;color:var(--accent2);font-size:13px;text-decoration:none}
 .exp-lnk:hover{text-decoration:underline}
 
+/* ── Remote cursors (CodeMirror) ── */
+.remote-cursor {
+  position: relative;
+  border-left: 2px solid;
+  margin-left: -1px;
+  pointer-events: none;
+}
+.remote-cursor-label {
+  position: absolute;
+  top: -18px; left: -1px;
+  font-size: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  color: #fff;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .2s;
+  z-index: 10;
+}
+.remote-cursor-label.show { opacity: 1 }
+/* Typing indicator in status bar */
+.s-typing {
+  display: flex; align-items: center; gap: 5px;
+  animation: fadein .2s ease;
+}
+@keyframes fadein { from { opacity:0 } to { opacity:1 } }
+.typing-dots { display: flex; gap: 2px; align-items: center }
+.typing-dots span {
+  width: 3px; height: 3px; border-radius: 50%; background: var(--accent2);
+  animation: tdot .9s ease infinite;
+}
+.typing-dots span:nth-child(2) { animation-delay: .15s }
+.typing-dots span:nth-child(3) { animation-delay: .3s }
+@keyframes tdot { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-3px)} }
+
 /* ── Deletion dissolve animation ── */
 @keyframes dissolve-out {
   0%   { opacity:1; filter:blur(0px) brightness(1); }
@@ -374,6 +412,8 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <span id="sSave">--</span>
     <div class="sb-sep"></div>
     <span id="sConn" class="s-click" title="Connection history">👥 --</span>
+    <div class="sb-sep" id="typingSep" style="display:none"></div>
+    <span id="sTyping" style="display:none"></span>
   </div>
 </div>
 
@@ -451,6 +491,13 @@ let adInterval   = null;
 let expiryInterval = null;
 let secInterval    = null;
 let connPopupOpen  = false;
+
+/* Remote cursors & typing */
+const remoteBookmarks = {};   // uid -> CM bookmark
+const remoteUsers     = {};   // uid -> {username, color}
+const typingTimers    = {};   // uid -> timeout id (clear "typing" after silence)
+let cursorBcTimer     = null; // throttle cursor broadcast
+let reconcileTimer    = null; // periodic full-sync safety net
 
 /* ── Helpers ── */
 function toast(msg, ms = 2500) {
@@ -738,6 +785,55 @@ function setupOffline() {
   if (!navigator.onLine) b.style.display = 'block';
 }
 
+/* ── Remote cursor (CodeMirror only) ── */
+function setRemoteCursor(uid, pos, username, color) {
+  if (!cmEditor) return;
+  if (remoteBookmarks[uid]) { remoteBookmarks[uid].clear(); delete remoteBookmarks[uid]; }
+  const wrap = document.createElement('span');
+  wrap.className = 'remote-cursor';
+  wrap.style.borderColor = color;
+  const lbl = document.createElement('span');
+  lbl.className = 'remote-cursor-label show';
+  lbl.style.background = color;
+  lbl.textContent = username;
+  wrap.appendChild(lbl);
+  remoteBookmarks[uid] = cmEditor.setBookmark(pos, { widget: wrap, insertLeft: true });
+  // Hide label after 1.5s
+  setTimeout(() => lbl.classList.remove('show'), 1500);
+}
+function clearRemoteCursor(uid) {
+  if (remoteBookmarks[uid]) { remoteBookmarks[uid].clear(); delete remoteBookmarks[uid]; }
+}
+
+/* ── Typing indicator (status bar) ── */
+function showTyping(uid, username, color) {
+  remoteUsers[uid] = { username, color };
+  clearTimeout(typingTimers[uid]);
+  typingTimers[uid] = setTimeout(() => { delete remoteUsers[uid]; renderTyping(); }, 3000);
+  renderTyping();
+}
+function renderTyping() {
+  const users = Object.values(remoteUsers);
+  const sep = document.getElementById('typingSep');
+  const el  = document.getElementById('sTyping');
+  if (users.length === 0) { sep.style.display = 'none'; el.style.display = 'none'; return; }
+  const names = users.slice(0, 2).map(u => `<span style="color:${u.color};font-weight:600">${esc(u.username)}</span>`).join(', ');
+  const extra = users.length > 2 ? ` +${users.length - 2}` : '';
+  sep.style.display = '';
+  el.style.display  = '';
+  el.innerHTML = `<span class="s-typing">${names}${extra} <span class="typing-dots"><span></span><span></span><span></span></span></span>`;
+}
+
+/* ── Broadcast cursor position (throttled 80ms) ── */
+function broadcastCursor(pos) {
+  clearTimeout(cursorBcTimer);
+  cursorBcTimer = setTimeout(() => {
+    channel?.send({ type: 'broadcast', event: 'cursor-move', payload: {
+      uid: myUserId, username: myUsername, color: myColor, pos
+    }});
+  }, 80);
+}
+
 /* ── Delta computation for plain text ── */
 function computeDelta(oldVal, newVal) {
   let from = 0;
@@ -915,6 +1011,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     setSave('Synced');
   });
 
+  /* Receive: remote cursor position */
+  channel.on('broadcast', { event: 'cursor-move' }, ({ payload }) => {
+    if (payload.uid === myUserId) return;
+    showTyping(payload.uid, payload.username, payload.color);
+    if (currentMode === 'html' && payload.pos && cmEditor) {
+      setRemoteCursor(payload.uid, payload.pos, payload.username, payload.color);
+    }
+  });
+
   /* Receive: a peer is requesting the full doc state */
   channel.on('broadcast', { event: 'request-sync' }, ({ payload }) => {
     // Any peer can respond — first one wins (others are ignored by receiver)
@@ -972,15 +1077,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (hasNewUser) showSecAlert();
   });
 
-  /* User left → clear content if they were the last other user */
+  /* User left → clear their cursor, clear content if last peer */
   channel.on('presence', { event: 'leave' }, ({ leftPresences }) => {
-    // If a different user (not me) disconnected, wipe their contributions
-    // In a shared plain-text doc we clear all since we can't attribute lines
+    leftPresences.forEach(p => {
+      clearRemoteCursor(p.uid);
+      delete remoteUsers[p.uid];
+    });
+    renderTyping();
     const differentUserLeft = leftPresences.some(p => p.uid !== myUserId);
     if (!differentUserLeft) return;
     const remaining = Object.values(channel.presenceState()).flat();
     const otherUsers = remaining.filter(p => p.uid !== myUserId);
-    // Only auto-clear if no other users remain (last peer disconnected)
     if (otherUsers.length === 0) {
       fireAutoDelete();
       toast('A user disconnected — content cleared');
@@ -1041,17 +1148,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('lineGutter').scrollTop = ta.scrollTop;
   });
 
-  /* CodeMirror: change — broadcast delta (from/to/text), not full content */
+  /* CodeMirror: change — broadcast delta */
   cmEditor.on('change', (cm, change) => {
     if (isApplyingRemote) return;
     updateCount(); scheduleSave(); resetAd();
     channel?.send({ type: 'broadcast', event: 'cm-delta', payload: {
-      uid: myUserId,
-      from: change.from,
-      to:   change.to,
-      text: change.text  // array of strings (one per line)
+      uid: myUserId, from: change.from, to: change.to, text: change.text
     }});
   });
+
+  /* CodeMirror: cursor activity — broadcast position */
+  cmEditor.on('cursorActivity', (cm) => {
+    if (isApplyingRemote) return;
+    broadcastCursor(cm.getCursor());
+  });
+
+  /* Plain text: cursor/selection moves — broadcast position as char offset */
+  ['keyup', 'click', 'select'].forEach(evt => {
+    ta.addEventListener(evt, () => {
+      if (isApplyingRemote) return;
+      broadcastCursor({ offset: ta.selectionStart });
+    });
+  });
+
+  /* ── Periodic reconciliation: every 8s save + re-check DB state ── */
+  reconcileTimer = setInterval(async () => {
+    if (!docShortId || !isDirty) return;
+    await saveNow();
+  }, 8000);
 
   /* ════════════════════
      UI HANDLERS
