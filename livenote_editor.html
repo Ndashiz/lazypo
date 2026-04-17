@@ -439,7 +439,7 @@ let myUserId, myUsername, myColor;
 let isApplyingRemote = false;
 let isDirty      = false;
 let saveTimer    = null;
-let bcTimer      = null;   // broadcast debounce
+let prevPlainValue = '';   // for delta computation
 
 /* Auto-delete (inactivity-based) */
 let adEnabled    = true;   // ON by default
@@ -738,12 +738,27 @@ function setupOffline() {
   if (!navigator.onLine) b.style.display = 'block';
 }
 
-/* ── Broadcast helper ── */
-function scheduleBroadcast(event, payload) {
-  clearTimeout(bcTimer);
-  bcTimer = setTimeout(() => {
-    channel?.send({ type: 'broadcast', event, payload });
-  }, 16); // 16ms — one frame, imperceptible but batches rapid keystrokes
+/* ── Delta computation for plain text ── */
+function computeDelta(oldVal, newVal) {
+  let from = 0;
+  const minLen = Math.min(oldVal.length, newVal.length);
+  while (from < minLen && oldVal[from] === newVal[from]) from++;
+  let oldEnd = oldVal.length, newEnd = newVal.length;
+  while (oldEnd > from && newEnd > from && oldVal[oldEnd - 1] === newVal[newEnd - 1]) { oldEnd--; newEnd--; }
+  return { from, to: oldEnd, text: newVal.slice(from, newEnd) };
+}
+
+/* ── Apply a plain-text delta to a textarea, preserving cursor ── */
+function applyPlainDelta(ta, payload) {
+  const ss = ta.selectionStart, se = ta.selectionEnd, st = ta.scrollTop;
+  isApplyingRemote = true;
+  ta.value = ta.value.slice(0, payload.from) + payload.text + ta.value.slice(payload.to);
+  prevPlainValue = ta.value;
+  isApplyingRemote = false;
+  const shift = payload.text.length - (payload.to - payload.from);
+  ta.selectionStart = ss <= payload.from ? ss : Math.max(payload.from, ss + shift);
+  ta.selectionEnd   = se <= payload.from ? se : Math.max(payload.from, se + shift);
+  ta.scrollTop = st;
 }
 
 /* ═══════════════════════════════════════════════
@@ -823,6 +838,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const rawContent = extractFromLegacy(doc.content || '');
   if (currentMode === 'plaintext') {
     document.getElementById('plainEditor').value = rawContent;
+    prevPlainValue = rawContent;
     updateLines();
   } else {
     cmEditor.setValue(rawContent);
@@ -860,32 +876,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     config: { broadcast: { self: false }, presence: { key: myUserId } }
   });
 
-  /* Receive: plain text update */
-  channel.on('broadcast', { event: 'plain-update' }, ({ payload }) => {
+  /* Receive: plain text delta (real-time per-keystroke) */
+  channel.on('broadcast', { event: 'plain-delta' }, ({ payload }) => {
     if (payload.uid === myUserId || currentMode !== 'plaintext') return;
     const ta = document.getElementById('plainEditor');
-    const ss = ta.selectionStart, se = ta.selectionEnd, st = ta.scrollTop;
-    isApplyingRemote = true;
-    ta.value = payload.content;
-    isApplyingRemote = false;
-    ta.selectionStart = Math.min(ss, payload.content.length);
-    ta.selectionEnd   = Math.min(se, payload.content.length);
-    ta.scrollTop = st;
+    applyPlainDelta(ta, payload);
     updateLines(); updateCount();
-    resetAd(); // remote user is active
+    resetAd();
   });
 
-  /* Receive: HTML/CodeMirror update */
-  channel.on('broadcast', { event: 'cm-update' }, ({ payload }) => {
+  /* Receive: HTML/CodeMirror delta (real-time per-keystroke) */
+  channel.on('broadcast', { event: 'cm-delta' }, ({ payload }) => {
     if (payload.uid === myUserId || currentMode !== 'html' || !cmEditor) return;
-    const cur = cmEditor.getCursor(), sc = cmEditor.getScrollInfo();
     isApplyingRemote = true;
-    cmEditor.setValue(payload.content || '');
+    cmEditor.replaceRange(payload.text.join('\n'), payload.from, payload.to, '+remote');
     isApplyingRemote = false;
-    cmEditor.setCursor(cur);
-    cmEditor.scrollTo(sc.left, sc.top);
     updateCount();
-    resetAd(); // remote user is active
+    resetAd();
   });
 
   /* Receive: full-doc sync (response to our request-sync) */
@@ -898,6 +905,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     if (currentMode === 'plaintext') {
       document.getElementById('plainEditor').value = payload.content || '';
+      prevPlainValue = payload.content || '';
       updateLines();
     } else if (cmEditor) {
       cmEditor.setValue(payload.content || '');
@@ -1020,22 +1028,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   /* Plain text: input */
   const ta = document.getElementById('plainEditor');
+  prevPlainValue = ta.value; // init after doc loaded
   ta.addEventListener('input', () => {
     if (isApplyingRemote) return;
+    const delta = computeDelta(prevPlainValue, ta.value);
+    prevPlainValue = ta.value;
     updateLines(); updateCount(); scheduleSave();
-    resetAd(); // local activity → reset inactivity timer
-    scheduleBroadcast('plain-update', { uid: myUserId, content: ta.value });
+    resetAd();
+    channel?.send({ type: 'broadcast', event: 'plain-delta', payload: { uid: myUserId, ...delta } });
   });
   ta.addEventListener('scroll', () => {
     document.getElementById('lineGutter').scrollTop = ta.scrollTop;
   });
 
-  /* CodeMirror: change */
+  /* CodeMirror: change — broadcast delta (from/to/text), not full content */
   cmEditor.on('change', (cm, change) => {
     if (isApplyingRemote) return;
-    updateCount(); scheduleSave();
-    resetAd(); // local activity → reset inactivity timer
-    scheduleBroadcast('cm-update', { uid: myUserId, content: cm.getValue() });
+    updateCount(); scheduleSave(); resetAd();
+    channel?.send({ type: 'broadcast', event: 'cm-delta', payload: {
+      uid: myUserId,
+      from: change.from,
+      to:   change.to,
+      text: change.text  // array of strings (one per line)
+    }});
   });
 
   /* ════════════════════
