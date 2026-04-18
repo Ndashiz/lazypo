@@ -527,6 +527,7 @@ let docData      = null;
 let myUserId, myUsername, myColor;
 let isApplyingRemote = false;
 let isDirty      = false;
+let lastSavedContent = '';
 let saveTimer    = null;
 let isEditing    = false;  // true while user is actively typing
 let editingTimer = null;
@@ -659,6 +660,7 @@ async function saveNow() {
   const { error } = await sb.from('livenote_docs').update({ content: getContent() }).eq('short_id', docShortId);
   document.getElementById('sDot').classList.remove('sync');
   isDirty = false;
+  lastSavedContent = getContent();
   if (error) { setSave('Save error'); return; }
   const t = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
   setSave(`Saved ${t}`);
@@ -901,11 +903,24 @@ function applyRemoteContent(content, mode) {
   }
   if (currentMode === 'plaintext') {
     const el = document.getElementById('plainEditor');
+    const hadFocus = document.activeElement === el;
     const st = el.scrollTop;
     isApplyingRemote = true;
     el.innerHTML = raw;
     isApplyingRemote = false;
     el.scrollTop = st;
+    // Restore focus so the user can keep typing after remote update
+    if (hadFocus) {
+      el.focus();
+      try {
+        const range = document.createRange();
+        const sel   = window.getSelection();
+        range.selectNodeContents(el);
+        range.collapse(false); // move to end
+        sel.removeAllRanges();
+        sel.addRange(range);
+      } catch(_) {}
+    }
     updateLines(); updateCount();
   } else if (cmEditor) {
     const cur = cmEditor.getCursor(), sc = cmEditor.getScrollInfo();
@@ -1379,10 +1394,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       table: 'livenote_docs',
       filter: `short_id=eq.${docShortId}`
     }, (payload) => {
-      // Don't disrupt active typing — the broadcaster will eventually save
       if (isEditing) return;
       const c = payload.new.content || '';
       const m = payload.new.mode || currentMode;
+      // Skip if this is our own save echoing back from DB
+      if (c === lastSavedContent && m === currentMode) return;
       if (c !== getContent() || m !== currentMode) {
         applyRemoteContent(c, m);
         setSave('Synced from DB');
@@ -1402,7 +1418,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Mark editing active (guards postgres_changes from clobbering us)
     isEditing = true;
     clearTimeout(editingTimer);
-    editingTimer = setTimeout(() => { isEditing = false; }, 2000);
+    editingTimer = setTimeout(() => { isEditing = false; }, 4000);
     updateLines(); updateCount(); scheduleSave(); resetAd();
     scheduleBroadcastContent();
   });
@@ -1453,7 +1469,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (isApplyingRemote) return;
     isEditing = true;
     clearTimeout(editingTimer);
-    editingTimer = setTimeout(() => { isEditing = false; }, 2000);
+    editingTimer = setTimeout(() => { isEditing = false; }, 4000);
     updateCount(); scheduleSave(); resetAd();
     scheduleBroadcastContent();
   });
