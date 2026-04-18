@@ -112,12 +112,17 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
   color:#383838;user-select:none;overflow:hidden;white-space:pre;
 }
 #plainEditor{
-  flex:1;resize:none;border:none;outline:none;
+  flex:1;border:none;outline:none;
   background:var(--bg);color:var(--text);
   font-family:'DM Mono',monospace;font-size:13.5px;line-height:1.65;
   padding:20px 32px;overflow-y:auto;tab-size:2;
+  white-space:pre-wrap;word-break:break-word;
 }
-#plainEditor::placeholder{color:var(--muted)}
+#plainEditor:empty::before{
+  content:attr(data-placeholder);
+  color:var(--muted);pointer-events:none;display:block;
+}
+#plainEditor img{max-width:100%;border-radius:6px;margin:4px 0;display:block}
 #plainEditor::-webkit-scrollbar{width:5px}
 #plainEditor::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
 
@@ -435,7 +440,7 @@ html,body{height:100%;overflow:hidden;font-family:'DM Sans',sans-serif;backgroun
     <!-- Plain text -->
     <div class="plain-wrap" id="plainMode">
       <div class="line-gutter" id="lineGutter">1</div>
-      <textarea id="plainEditor" placeholder="Start writing…" spellcheck="false" autocomplete="off" autocorrect="off"></textarea>
+      <div id="plainEditor" contenteditable="true" data-placeholder="Start writing…" spellcheck="false"></div>
     </div>
     <!-- HTML / CodeMirror -->
     <div id="htmlMode"><div id="cmWrap"></div></div>
@@ -593,21 +598,22 @@ function playAlert() {
 
 /* ── Line numbers ── */
 function updateLines() {
-  const ta = document.getElementById('plainEditor');
-  const n  = (ta.value.match(/\n/g) || []).length + 1;
+  const el = document.getElementById('plainEditor');
+  const n  = (el.innerText.match(/\n/g) || []).length + 1;
   let s = '';
   for (let i = 1; i <= n; i++) s += i + '\n';
   document.getElementById('lineGutter').textContent = s;
-  document.getElementById('lineGutter').scrollTop  = ta.scrollTop;
+  document.getElementById('lineGutter').scrollTop  = el.scrollTop;
 }
 
 /* ── Word / line count ── */
 function updateCount() {
   const el = document.getElementById('sCount');
   if (currentMode === 'plaintext') {
-    const ta = document.getElementById('plainEditor');
-    const ln = (ta.value.match(/\n/g) || []).length + 1;
-    const wd = ta.value.trim() ? ta.value.trim().split(/\s+/).length : 0;
+    const el = document.getElementById('plainEditor');
+    const txt = el.innerText || '';
+    const ln = (txt.match(/\n/g) || []).length + 1;
+    const wd = txt.trim() ? txt.trim().split(/\s+/).length : 0;
     el.textContent = `${ln} line${ln !== 1 ? 's' : ''} · ${wd} word${wd !== 1 ? 's' : ''}`;
   } else if (cmEditor) {
     const wd = cmEditor.getValue().trim().split(/\s+/).filter(Boolean).length;
@@ -618,14 +624,14 @@ function updateCount() {
 
 /* ── Content getters / setters ── */
 function getContent() {
-  if (currentMode === 'plaintext') return document.getElementById('plainEditor').value;
+  if (currentMode === 'plaintext') return document.getElementById('plainEditor').innerHTML;
   if (cmEditor) return cmEditor.getValue();
   return '';
 }
 
 function setContent(raw) {
   if (currentMode === 'plaintext') {
-    document.getElementById('plainEditor').value = raw || '';
+    document.getElementById('plainEditor').innerHTML = raw || '';
     updateLines(); updateCount();
   } else if (cmEditor) {
     isApplyingRemote = true;
@@ -682,7 +688,7 @@ async function switchMode(newMode) {
   applyModeUI(newMode);
   isApplyingRemote = true;
   if (newMode === 'plaintext') {
-    document.getElementById('plainEditor').value = prev;
+    document.getElementById('plainEditor').innerHTML = prev;
     updateLines();
   } else if (cmEditor) {
     cmEditor.setValue(prev);
@@ -740,7 +746,7 @@ async function fireAutoDelete() {
   await new Promise(r => setTimeout(r, 400)); // let animation peak before clearing
   // Clear editor
   isApplyingRemote = true;
-  if (currentMode === 'plaintext') { document.getElementById('plainEditor').value = ''; updateLines(); }
+  if (currentMode === 'plaintext') { document.getElementById('plainEditor').innerHTML = ''; updateLines(); }
   else if (cmEditor) { cmEditor.setValue(''); }
   isApplyingRemote = false;
   setTimeout(() => wrap.classList.remove('dissolving'), 400);
@@ -894,14 +900,12 @@ function applyRemoteContent(content, mode) {
     currentMode = mode; applyModeUI(mode);
   }
   if (currentMode === 'plaintext') {
-    const ta = document.getElementById('plainEditor');
-    const ss = ta.selectionStart, se = ta.selectionEnd, st = ta.scrollTop;
+    const el = document.getElementById('plainEditor');
+    const st = el.scrollTop;
     isApplyingRemote = true;
-    ta.value = raw;
+    el.innerHTML = raw;
     isApplyingRemote = false;
-    ta.selectionStart = Math.min(ss, raw.length);
-    ta.selectionEnd   = Math.min(se, raw.length);
-    ta.scrollTop = st;
+    el.scrollTop = st;
     updateLines(); updateCount();
   } else if (cmEditor) {
     const cur = cmEditor.getCursor(), sc = cmEditor.getScrollInfo();
@@ -987,6 +991,70 @@ function showFileCard(info) {
       setTimeout(() => card.remove(), 500);
     }
   }, 500);
+}
+
+/* ═══════════════════════════════════════════════
+   RICH PASTE HELPERS
+═══════════════════════════════════════════════ */
+
+function insertHtmlAtCursor(html) {
+  const sel = window.getSelection();
+  if (!sel || !sel.rangeCount) return;
+  const range = sel.getRangeAt(0);
+  range.deleteContents();
+  const frag = range.createContextualFragment(html);
+  range.insertNode(frag);
+  range.collapse(false);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+async function uploadPasteImage(file) {
+  const ext  = (file.type.split('/')[1] || 'png').replace('jpeg','jpg');
+  const path = `${docShortId}/paste-${Date.now()}.${ext}`;
+  const { error } = await sb.storage.from(FILE_BUCKET).upload(path, file, { upsert: true });
+  if (error) throw error;
+  const { data: { publicUrl } } = sb.storage.from(FILE_BUCKET).getPublicUrl(path);
+  return publicUrl;
+}
+
+async function processWordHtml(html) {
+  const parser = new DOMParser();
+  const doc    = parser.parseFromString(html, 'text/html');
+
+  // Upload every base64 image and replace with the public URL
+  const imgs = Array.from(doc.querySelectorAll('img[src^="data:"]'));
+  await Promise.all(imgs.map(async img => {
+    try {
+      const dataUrl = img.src;
+      const [header, b64] = dataUrl.split(',');
+      const mime   = header.match(/:(.*?);/)?.[1] || 'image/png';
+      const binary = atob(b64);
+      const bytes  = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: mime });
+      const file = new File([blob], `paste.${mime.split('/')[1] || 'png'}`, { type: mime });
+      const url  = await uploadPasteImage(file);
+      img.src              = url;
+      img.style.maxWidth   = '100%';
+      img.style.borderRadius = '6px';
+      img.removeAttribute('width');
+      img.removeAttribute('height');
+    } catch (_) { img.remove(); }
+  }));
+
+  // Strip Word-specific tags/attributes, keep meaningful content
+  // Remove script, style, meta, o:*, w:*, m:* nodes
+  doc.querySelectorAll('script,style,meta,link').forEach(n => n.remove());
+  // Strip class/id/style (except on img) to avoid Word junk
+  doc.body.querySelectorAll('*:not(img)').forEach(n => {
+    n.removeAttribute('class');
+    n.removeAttribute('id');
+    n.removeAttribute('style');
+    n.removeAttribute('lang');
+  });
+
+  return doc.body.innerHTML;
 }
 
 let dropZoneDisabled = false;
@@ -1115,7 +1183,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   applyModeUI(currentMode);
   const rawContent = extractFromLegacy(doc.content || '');
   if (currentMode === 'plaintext') {
-    document.getElementById('plainEditor').value = rawContent;
+    document.getElementById('plainEditor').innerHTML = rawContent;
     updateLines();
   } else {
     cmEditor.setValue(rawContent);
@@ -1211,7 +1279,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     applyModeUI(payload.mode);
     isApplyingRemote = true;
     if (payload.mode === 'plaintext') {
-      document.getElementById('plainEditor').value = payload.content || '';
+      document.getElementById('plainEditor').innerHTML = payload.content || '';
       updateLines();
     } else if (cmEditor) {
       cmEditor.setValue(payload.content || '');
@@ -1223,7 +1291,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   /* Receive: auto-delete fired by peer */
   channel.on('broadcast', { event: 'ad-fired' }, () => {
     isApplyingRemote = true;
-    if (currentMode === 'plaintext') { document.getElementById('plainEditor').value = ''; updateLines(); }
+    if (currentMode === 'plaintext') { document.getElementById('plainEditor').innerHTML = ''; updateLines(); }
     else if (cmEditor) { cmEditor.setValue(''); }
     isApplyingRemote = false;
     updateCount(); toast('Content deleted by another user');
@@ -1326,10 +1394,10 @@ document.addEventListener('DOMContentLoaded', async () => {
      EDITOR EVENTS
   ════════════════════ */
 
-  const ta = document.getElementById('plainEditor');
+  const el = document.getElementById('plainEditor');
 
   /* Plain text: input */
-  ta.addEventListener('input', () => {
+  el.addEventListener('input', () => {
     if (isApplyingRemote) return;
     // Mark editing active (guards postgres_changes from clobbering us)
     isEditing = true;
@@ -1338,8 +1406,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateLines(); updateCount(); scheduleSave(); resetAd();
     scheduleBroadcastContent();
   });
-  ta.addEventListener('scroll', () => {
-    document.getElementById('lineGutter').scrollTop = ta.scrollTop;
+  el.addEventListener('scroll', () => {
+    document.getElementById('lineGutter').scrollTop = el.scrollTop;
+  });
+
+  /* Plain text: rich paste (Word docs, images) */
+  el.addEventListener('paste', async (e) => {
+    e.preventDefault();
+    const cd = e.clipboardData;
+
+    // ── 1. Direct image paste (screenshot, copy from image viewer) ──────────
+    const imgItem = Array.from(cd.items || []).find(i => i.type.startsWith('image/'));
+    if (imgItem && !cd.types.includes('text/html')) {
+      const file = imgItem.getAsFile();
+      if (file) {
+        toast('Uploading image…');
+        try {
+          const url = await uploadPasteImage(file, file.type);
+          insertHtmlAtCursor(`<img src="${url}" style="max-width:100%">`);
+          scheduleSave(); scheduleBroadcastContent();
+        } catch(err) { toast('Image upload failed'); }
+      }
+      return;
+    }
+
+    // ── 2. Rich HTML paste (Word, Google Docs, browser copy) ────────────────
+    if (cd.types.includes('text/html')) {
+      const html = cd.getData('text/html');
+      toast('Processing…');
+      try {
+        const clean = await processWordHtml(html);
+        insertHtmlAtCursor(clean);
+        updateLines(); updateCount(); scheduleSave(); scheduleBroadcastContent();
+      } catch(err) { toast('Paste failed'); }
+      return;
+    }
+
+    // ── 3. Plain text fallback ───────────────────────────────────────────────
+    const text = cd.getData('text/plain');
+    document.execCommand('insertText', false, text);
+    updateLines(); updateCount(); scheduleSave(); scheduleBroadcastContent();
   });
 
   /* CodeMirror: change — broadcast full content (versioned) */
