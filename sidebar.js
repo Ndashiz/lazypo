@@ -57,6 +57,13 @@
       desc: 'Centralise all your meeting notes in one click.'
     },
     {
+      id: 'quiz',
+      icon: '🧠',
+      label: 'Knowledge Quiz',
+      url: 'quiz.html',
+      desc: 'Build your EN/NL vocabulary with spaced repetition quizzes.'
+    },
+    {
       id: 'focusfm',
       icon: '🎵',
       label: 'Focus FM',
