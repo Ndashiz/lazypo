@@ -76,9 +76,12 @@
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ grant_type:'refresh_token', refresh_token:rt, client_id:CLIENT_ID }),
       });
-      if (!r.ok) { clearTokens(); return false; }
+      // Only clear tokens if Spotify explicitly rejects the refresh token (invalid/revoked).
+      // On network errors or server errors, keep existing tokens and try with what we have.
+      if (r.status === 400 || r.status === 401) { clearTokens(); return false; }
+      if (!r.ok) return false; // server/network error — keep tokens, try anyway
       saveTokens(await r.json()); return true;
-    } catch { return false; }
+    } catch { return false; } // network offline — keep tokens
   }
 
   function clearTokens() {
@@ -729,8 +732,16 @@ html.fm-focus-mode #_fm_mini { border-color:#fbbf24; box-shadow:0 0 20px rgba(25
 
     if (getAccess()) {
       ensureToken().then(ok => {
-        if (ok) initSDK();
-        else { clearTokens(); render(); }
+        if (ok) {
+          initSDK();
+        } else if (getAccess()) {
+          // Refresh failed (network/server error) but we still have an access token —
+          // try the SDK anyway. authentication_error will fire if truly invalid.
+          initSDK();
+        } else {
+          // Token was explicitly cleared (401/400) — must reconnect
+          render();
+        }
       });
     }
   }
