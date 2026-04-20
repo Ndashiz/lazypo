@@ -18,12 +18,16 @@ create table public.vocabulary (
   target_translation text not null,
   language_pair      text not null default 'EN→FR',
   example_sentence   text,
+  is_system          boolean default false,
   created_at         timestamptz default now(),
   updated_at         timestamptz default now()
 );
 alter table public.vocabulary enable row level security;
 create policy "own_vocabulary" on public.vocabulary
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Migration (run once if table already exists):
+-- alter table public.vocabulary add column if not exists is_system boolean default false;
 
 -- Table 2: quiz_progress
 create table public.quiz_progress (
@@ -572,6 +576,28 @@ body { padding-left: 64px; }
   font-family: 'DM Mono', monospace;
   white-space: nowrap;
 }
+/* Source badge (system vs user) */
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: 'DM Mono', monospace;
+  white-space: nowrap;
+}
+.source-system {
+  background: rgba(139,92,246,.1);
+  border: 1px solid rgba(167,139,250,.25);
+  color: #a78bfa;
+}
+.source-user {
+  background: rgba(34,197,94,.08);
+  border: 1px solid rgba(34,197,94,.2);
+  color: #4ade80;
+}
 .qz-question-word {
   font-size: 42px;
   font-weight: 700;
@@ -901,6 +927,11 @@ body { padding-left: 64px; }
         <button class="qz-pill"        data-lang-filter="NL→FR">NL→FR</button>
         <button class="qz-pill"        data-lang-filter="nl-fr">🇳🇱 nl-fr</button>
       </div>
+      <div class="qz-pill-group" role="group" aria-label="Source filter">
+        <button class="qz-pill active" data-source-filter="all">Tous</button>
+        <button class="qz-pill"        data-source-filter="user">👤 Mes mots</button>
+        <button class="qz-pill"        data-source-filter="system">🤖 Système</button>
+      </div>
       <select id="vocab-sort" class="qz-sort-select" aria-label="Sort vocabulary">
         <option value="newest">Newest first</option>
         <option value="oldest">Oldest first</option>
@@ -920,6 +951,7 @@ body { padding-left: 64px; }
             <th>Language</th>
             <th>Example</th>
             <th>Success Rate</th>
+            <th>Source</th>
             <th>Added</th>
             <th>Actions</th>
           </tr>
@@ -961,6 +993,16 @@ body { padding-left: 64px; }
             <button class="qz-pill"        data-filter="NL→FR">NL→FR</button>
             <button class="qz-pill"        data-filter="nl-fr">🇳🇱 Néerlandais</button>
             <button class="qz-pill"        data-filter="practice">Needs practice</button>
+          </div>
+        </div>
+
+        <!-- System words -->
+        <div class="qz-option-group">
+          <div class="qz-option-label">Mots système</div>
+          <div class="qz-pill-group" id="system-pills" role="group" aria-label="System words">
+            <button class="qz-pill active" data-system="include">✅ Inclure</button>
+            <button class="qz-pill"        data-system="exclude">🚫 Exclure</button>
+            <button class="qz-pill"        data-system="only">🤖 Uniquement</button>
           </div>
         </div>
 
@@ -1252,6 +1294,8 @@ async function recordAnswer(wordId, isCorrect) {
 
 let selectedLang    = 'EN→FR';
 let filterLang      = 'all';
+let sourceFilter    = 'all';   // 'all' | 'user' | 'system'
+let systemFilter    = 'include'; // 'include' | 'exclude' | 'only'  (quiz)
 let searchQuery     = '';
 let sortMode        = 'newest';
 let editingId       = null;
@@ -1277,6 +1321,16 @@ document.querySelectorAll('[data-lang-filter]').forEach(btn => {
     document.querySelectorAll('[data-lang-filter]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     filterLang = btn.dataset.langFilter;
+    renderVocab();
+  });
+});
+
+/* Source filter (user / system) */
+document.querySelectorAll('[data-source-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-source-filter]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    sourceFilter = btn.dataset.sourceFilter;
     renderVocab();
   });
 });
@@ -1310,7 +1364,9 @@ function submitAddWord() {
 
 function getFilteredVocab() {
   let list = [...vocab];
-  if (filterLang !== 'all') list = list.filter(w => w.language_pair === filterLang || (filterLang === 'nl-fr' && w.language_pair === 'nl-fr'));
+  if (filterLang !== 'all')   list = list.filter(w => w.language_pair === filterLang);
+  if (sourceFilter === 'user')   list = list.filter(w => !w.is_system);
+  if (sourceFilter === 'system') list = list.filter(w =>  w.is_system);
   if (searchQuery) list = list.filter(w =>
     w.source_word.toLowerCase().includes(searchQuery) ||
     w.target_translation.toLowerCase().includes(searchQuery)
@@ -1341,7 +1397,7 @@ function renderVocab() {
   document.getElementById('word-count').textContent = `${list.length} word${list.length !== 1 ? 's' : ''}`;
 
   if (!vocab.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="qz-empty">
+    tbody.innerHTML = `<tr><td colspan="8"><div class="qz-empty">
       <div class="qz-empty-icon">📚</div>
       <h3>No words yet</h3>
       <p>Add your first vocabulary word using the form above.<br>Start with something simple!</p>
@@ -1350,7 +1406,7 @@ function renderVocab() {
   }
 
   if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="7"><div class="qz-empty">
+    tbody.innerHTML = `<tr><td colspan="8"><div class="qz-empty">
       <div class="qz-empty-icon">🔍</div>
       <h3>No matches</h3>
       <p>Try adjusting your search or language filter.</p>
@@ -1369,16 +1425,21 @@ function renderVocabRow(word) {
   const ex  = word.example_sentence ? escHtml(word.example_sentence) : '—';
   const added = word.created_at ? timeAgo(word.created_at) : '—';
 
+  const srcBadge = word.is_system
+    ? `<span class="source-badge source-system">🤖 système</span>`
+    : `<span class="source-badge source-user">👤 moi</span>`;
+
   return `<tr data-id="${word.id}">
     <td class="source-word">${escHtml(word.source_word)}</td>
     <td>${escHtml(word.target_translation)}</td>
     <td><span class="lang-badge ${langClass}">${word.language_pair}</span></td>
     <td class="example" title="${escHtml(word.example_sentence || '')}">${ex}</td>
     <td>${rate}</td>
+    <td>${srcBadge}</td>
     <td class="ts-cell" title="${word.created_at ? new Date(word.created_at).toLocaleString() : ''}">${added}</td>
     <td>
       <button class="icon-btn btn-edit" data-id="${word.id}" title="Edit" aria-label="Edit word">✏️</button>
-      <button class="icon-btn danger btn-delete" data-id="${word.id}" title="Delete" aria-label="Delete word">🗑️</button>
+      ${word.is_system ? '' : `<button class="icon-btn danger btn-delete" data-id="${word.id}" title="Delete" aria-label="Delete word">🗑️</button>`}
     </td>
   </tr>`;
 }
@@ -1424,6 +1485,7 @@ function startEdit(id) {
   editingId = id;
   const word = vocab.find(w => w.id === id);
   if (!word) return;
+  if (word.is_system) { showToast('Les mots système ne peuvent pas être modifiés'); return; }
   const tbody = document.getElementById('vocab-tbody');
   const rows  = tbody.querySelectorAll('tr');
   rows.forEach(row => {
@@ -1476,6 +1538,16 @@ function attachEditListeners() {
 let quizFilter  = 'all';
 let quizCount   = 10;
 
+/* System pills */
+document.querySelectorAll('#system-pills .qz-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#system-pills .qz-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    systemFilter = btn.dataset.system;
+    updateAvailNote();
+  });
+});
+
 /* Mode pills */
 document.querySelectorAll('#mode-pills .qz-pill').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -1515,17 +1587,25 @@ function updateAvailNote() {
 }
 
 function filterVocabForQuiz(filter) {
-  if (filter === 'EN→FR') return vocab.filter(w => w.language_pair === 'EN→FR');
-  if (filter === 'NL→FR') return vocab.filter(w => w.language_pair === 'NL→FR');
-  if (filter === 'nl-fr')  return vocab.filter(w => w.language_pair === 'nl-fr');
-  if (filter === 'practice') {
-    return vocab.filter(w => {
+  let list = [...vocab];
+
+  // Language filter
+  if (filter === 'EN→FR')   list = list.filter(w => w.language_pair === 'EN→FR');
+  else if (filter === 'NL→FR')   list = list.filter(w => w.language_pair === 'NL→FR');
+  else if (filter === 'nl-fr')   list = list.filter(w => w.language_pair === 'nl-fr');
+  else if (filter === 'practice') {
+    list = list.filter(w => {
       const p = progress[w.id];
       if (!p || !p.attempts) return true;
       return (p.correct / p.attempts) < 0.6;
     });
   }
-  return [...vocab];
+
+  // System filter
+  if (systemFilter === 'exclude') list = list.filter(w => !w.is_system);
+  if (systemFilter === 'only')    list = list.filter(w =>  w.is_system);
+
+  return list;
 }
 
 function buildQuizQueue(filter, count, mode) {
@@ -1938,6 +2018,7 @@ document.getElementById('btn-import-nl')?.addEventListener('click', async () => 
         target_translation: m[2].replace(/''/g, "'"),
         language_pair:      'nl-fr',
         example_sentence:   m[3].replace(/''/g, "'") || null,
+        is_system:          true,
       });
     }
   } catch(e) {
