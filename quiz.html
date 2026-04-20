@@ -1081,15 +1081,18 @@ let sessionAnswers = [];        // { word, correct, skipped, givenAnswer }
 let sessionOptions = { filter: 'all', count: 10 };
 
 /* ── Init ── */
-document.addEventListener('DOMContentLoaded', async () => {
+// Use IIFE instead of DOMContentLoaded so it works both on direct load
+// and on SPA navigation (where DOMContentLoaded never re-fires)
+(async () => {
   await LazyAuth.requireAuth();
   const { data: { user } } = await window.sb.auth.getUser();
+  if (!user) return;
   currentUser = user;
   await Promise.all([loadVocab(), loadProgress()]);
   renderVocab();
   renderProgress();
   updateAvailNote();
-});
+})();
 
 /* ═══════════════════════════════════════════════════════════
    SUPABASE OPERATIONS
