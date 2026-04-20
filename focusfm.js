@@ -66,7 +66,10 @@
   };
   const getAccess  = () => localStorage.getItem(K.access);
   const getRefresh = () => localStorage.getItem(K.refresh);
-  const isExpired  = () => Date.now() > parseInt(localStorage.getItem(K.expiry) || 0) - 60000;
+  const isExpired  = () => {
+    const exp = parseInt(localStorage.getItem(K.expiry) || '0');
+    return exp > 0 && Date.now() > exp - 60000; // if no expiry stored, assume still valid
+  };
 
   async function refreshToken() {
     const rt = getRefresh(); if (!rt) return false;
@@ -176,7 +179,12 @@
     const go = () => {
       player = new Spotify.Player({
         name: 'LazyPO Focus FM',
-        getOAuthToken: async cb => { await ensureToken(); cb(getAccess()); },
+        getOAuthToken: async cb => {
+          const ok = await ensureToken();
+          const token = getAccess();
+          if (ok && token) { cb(token); } // only give SDK a valid token
+          // if no valid token, don't call cb — SDK will retry via authentication_error
+        },
         volume: parseFloat(localStorage.getItem(K.vol) || '0.7'),
       });
       player.addListener('ready', ({ device_id }) => {
@@ -197,7 +205,17 @@
         if (track?.id !== prev && track) showTrackToast(track);
         updateLive(); startTick();
       });
-      player.addListener('authentication_error', () => { clearTokens(); render(); });
+      player.addListener('authentication_error', async () => {
+        // Try to refresh before giving up — authentication_error can fire on transient issues
+        const refreshed = await refreshToken();
+        if (refreshed) {
+          // Got a fresh token — reconnect the SDK player
+          player?.connect();
+        } else {
+          // Refresh truly failed (401/400) — tokens already cleared by refreshToken()
+          render();
+        }
+      });
       player.addListener('account_error', () => toast('Spotify Premium required for in-browser playback'));
       player.connect();
     };
@@ -310,9 +328,9 @@
     s.textContent = `
 /* ─── Focus FM ─────────────────────────────────────── */
 
-/* Mini player — floating, bottom-right */
+/* Mini player — floating, bottom-right (above demo FAB) */
 #_fm_mini {
-  position: fixed; bottom: 16px; right: 16px; z-index: 300;
+  position: fixed; bottom: 84px; right: 16px; z-index: 300;
   display: flex; align-items: center; gap: 8px;
   background: #161616; border: 1px solid #282828;
   border-radius: 14px; padding: 8px 12px;
@@ -363,7 +381,7 @@
 
 /* ─── Expanded panel ─────────────────────────────── */
 #_fm_panel {
-  position: fixed; bottom: 78px; right: 16px; z-index: 299;
+  position: fixed; bottom: 148px; right: 16px; z-index: 299;
   width: 320px;
   background: #141414; border: 1px solid #282828;
   border-radius: 18px;
@@ -442,7 +460,7 @@ input.fm-vol-slider:hover { background:#3a3a3a; }
 
 /* ─── Track change toast ─────────────────────────── */
 #_fm_track_toast {
-  position:fixed; bottom:100px; right:16px; z-index:400;
+  position:fixed; bottom:160px; right:16px; z-index:400;
   display:flex; align-items:center; gap:10px;
   background:#1c1c1c; border:1px solid #2a2a2a;
   border-radius:12px; padding:10px 14px;
