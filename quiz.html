@@ -7,6 +7,7 @@
 <title>Knowledge Quiz — LazyPO</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 /*
 -- Run once in Supabase SQL Editor
@@ -906,6 +907,30 @@ body { padding-left: 64px; }
 }
 tr.row-selected { background: rgba(59,130,246,.05); }
 
+/* ── Excel import/export ── */
+.qz-excel-row {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.btn-excel {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 7px 14px; border-radius: 8px; border: 1px solid;
+  font-size: 12.5px; font-weight: 500; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; transition: all .15s;
+}
+.btn-excel.export {
+  background: rgba(34,197,94,.07); border-color: rgba(34,197,94,.22); color: #4ade80;
+}
+.btn-excel.export:hover { background: rgba(34,197,94,.16); }
+.btn-excel.import {
+  background: rgba(59,130,246,.07); border-color: rgba(96,165,250,.22); color: #60a5fa;
+}
+.btn-excel.import:hover { background: rgba(59,130,246,.16); }
+#xlsx-file-input { display: none; }
+.excel-hint {
+  font-size: 11.5px; color: var(--muted); font-family: 'DM Mono', monospace;
+}
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
   body { padding-left: 0; }
@@ -995,6 +1020,14 @@ tr.row-selected { background: rgba(59,130,246,.05); }
         <option value="hardest">Hardest first</option>
       </select>
       <span class="qz-word-count" id="word-count">0 words</span>
+    </div>
+
+    <!-- Excel export / import -->
+    <div class="qz-excel-row">
+      <button class="btn-excel export" id="btn-export-xl">📥 Exporter Excel</button>
+      <button class="btn-excel import" id="btn-import-xl">📤 Importer Excel</button>
+      <input type="file" id="xlsx-file-input" accept=".xlsx,.xls,.csv">
+      <span class="excel-hint">L'export inclut le scoring SM-2 · L'import met à jour mots &amp; scores</span>
     </div>
 
     <!-- Bulk action bar -->
@@ -1310,6 +1343,138 @@ async function deleteWord(id) {
   renderProgress();
   updateAvailNote();
   showToast('Word deleted');
+}
+
+/* ══════════════════════════════════════════════════════
+   EXCEL EXPORT
+══════════════════════════════════════════════════════ */
+function exportToExcel() {
+  const list = getFilteredVocab();
+  if (!list.length) { showToast('Aucun mot à exporter'); return; }
+
+  const rows = list.map(w => {
+    const p = progress[w.id] || {};
+    return {
+      id:                 w.id,
+      source_word:        w.source_word,
+      target_translation: w.target_translation,
+      language_pair:      w.language_pair,
+      example_sentence:   w.example_sentence || '',
+      is_system:          w.is_system ? 1 : 0,
+      created_at:         w.created_at || '',
+      correct:            p.correct     ?? 0,
+      attempts:           p.attempts    ?? 0,
+      ease_factor:        p.ease_factor ?? 2.5,
+      interval_days:      p.interval_days ?? 1,
+      last_tested:        p.last_tested || '',
+    };
+  });
+
+  const ws = XLSX.utils.json_to_sheet(rows);
+  // Column widths
+  ws['!cols'] = [
+    {wch:38},{wch:22},{wch:22},{wch:10},{wch:40},
+    {wch:10},{wch:22},{wch:8},{wch:8},{wch:12},{wch:13},{wch:22}
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Vocabulary');
+  const date = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `lazypo-vocab-${date}.xlsx`);
+  showToast(`📥 ${rows.length} mots exportés`);
+}
+
+/* ══════════════════════════════════════════════════════
+   EXCEL IMPORT
+══════════════════════════════════════════════════════ */
+async function importFromExcel(file) {
+  if (!file) return;
+  const btn = document.getElementById('btn-import-xl');
+  btn.disabled = true;
+  btn.textContent = '⏳ Import…';
+
+  try {
+    const data  = await file.arrayBuffer();
+    const wb    = XLSX.read(data, { type: 'array' });
+    const ws    = wb.Sheets[wb.SheetNames[0]];
+    const rows  = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+    if (!rows.length) { showToast('Fichier vide'); return; }
+
+    // ── Upsert vocabulary rows ──────────────────────────────────
+    const vocabPayload = rows
+      .filter(r => r.source_word && r.target_translation)
+      .map(r => ({
+        ...(r.id ? { id: r.id } : {}),
+        user_id:            currentUser.id,
+        source_word:        String(r.source_word).trim(),
+        target_translation: String(r.target_translation).trim(),
+        language_pair:      String(r.language_pair || 'EN→FR').trim(),
+        example_sentence:   r.example_sentence ? String(r.example_sentence).trim() : null,
+        is_system:          r.is_system == 1 || r.is_system === true || r.is_system === 'true',
+      }));
+
+    const CHUNK = 100;
+    let vocabInserted = 0;
+    for (let i = 0; i < vocabPayload.length; i += CHUNK) {
+      const { error } = await window.sb.from('vocabulary')
+        .upsert(vocabPayload.slice(i, i + CHUNK), { onConflict: 'id' });
+      if (error) throw error;
+      vocabInserted += Math.min(CHUNK, vocabPayload.length - i);
+    }
+
+    // ── Upsert progress if scoring columns present ──────────────
+    const hasSM2 = rows.some(r => r.ease_factor !== '' && r.ease_factor !== undefined);
+    let progressInserted = 0;
+    if (hasSM2) {
+      // We need the word IDs after upsert — reload vocab first
+      await loadVocab();
+      // Build a lookup: source_word+language_pair → id
+      const lookup = {};
+      vocab.forEach(w => { lookup[w.source_word + '|' + w.language_pair] = w.id; });
+
+      const progPayload = rows
+        .filter(r => r.source_word && (r.attempts !== '' && r.attempts !== undefined))
+        .map(r => {
+          const wid = r.id || lookup[String(r.source_word).trim() + '|' + String(r.language_pair || 'EN→FR').trim()];
+          if (!wid) return null;
+          return {
+            user_id:       currentUser.id,
+            word_id:       wid,
+            correct:       parseInt(r.correct)      || 0,
+            attempts:      parseInt(r.attempts)     || 0,
+            ease_factor:   parseFloat(r.ease_factor) || 2.5,
+            interval_days: parseInt(r.interval_days) || 1,
+            last_tested:   r.last_tested || null,
+          };
+        })
+        .filter(Boolean);
+
+      for (let i = 0; i < progPayload.length; i += CHUNK) {
+        const { error } = await window.sb.from('quiz_progress')
+          .upsert(progPayload.slice(i, i + CHUNK), { onConflict: 'user_id,word_id' });
+        if (error) console.warn('Progress upsert error:', error);
+        else progressInserted += Math.min(CHUNK, progPayload.length - i);
+      }
+    }
+
+    await Promise.all([loadVocab(), loadProgress()]);
+    renderVocab();
+    renderProgress();
+    updateAvailNote();
+    updateImportBanner();
+    const msg = hasSM2
+      ? `✅ ${vocabInserted} mots + ${progressInserted} scores mis à jour`
+      : `✅ ${vocabInserted} mots importés`;
+    showToast(msg);
+
+  } catch (e) {
+    console.error('[Import Excel]', e);
+    showToast('Erreur import : ' + (e.message || e));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📤 Importer Excel';
+    document.getElementById('xlsx-file-input').value = '';
+  }
 }
 
 function updateBulkBar() {
@@ -1908,20 +2073,28 @@ function checkAnswer() {
   const given = input.value.trim();
   if (!given) return;
 
-  const correct  = item.answer.trim();
-  const exact    = given.toLowerCase() === correct.toLowerCase();
-  const close    = !exact && levenshtein(given.toLowerCase(), correct.toLowerCase()) === 1;
-  const isCorrect = exact || close;
+  const correct      = item.answer.trim();
+  // Support multiple alternatives separated by " / "  (e.g. "conduire / rouler")
+  const alternatives = correct.split(/\s*\/\s*/).map(s => s.trim()).filter(Boolean);
+  const givenLower   = given.toLowerCase();
+  const exact        = alternatives.some(alt => givenLower === alt.toLowerCase());
+  const closedAlt    = !exact && alternatives.find(alt => levenshtein(givenLower, alt.toLowerCase()) === 1);
+  const close        = !!closedAlt;
+  const isCorrect    = exact || close;
 
   const fb = document.getElementById('quiz-feedback');
   if (isCorrect) {
     input.classList.add('correct-flash');
     if (close) {
       fb.className = 'qz-feedback close';
-      fb.innerHTML = `✓ Close enough! <span class="qz-correct-answer">Accepted: "${correct}"</span>`;
+      fb.innerHTML = `✓ Proche ! <span class="qz-correct-answer">Accepté : "${closedAlt}"</span>`;
     } else {
       fb.className = 'qz-feedback correct';
-      fb.innerHTML = '✓ Correct!';
+      // If multiple alternatives exist, show the others as hint
+      const others = alternatives.filter(a => a.toLowerCase() !== givenLower);
+      fb.innerHTML = others.length
+        ? `✓ Correct ! <span class="qz-correct-answer" style="opacity:.65;font-size:12px;">Aussi valide : ${others.join(' / ')}</span>`
+        : '✓ Correct !';
     }
     recordAnswer(item.word.id, true);
     sessionAnswers.push({ word: item.word, correct: true, skipped: false, givenAnswer: given, direction: item.direction });
@@ -2179,6 +2352,18 @@ function updateImportBanner() {
 
 document.getElementById('btn-dismiss-banner')?.addEventListener('click', () => {
   document.getElementById('import-banner').style.display = 'none';
+});
+
+/* ── Excel export / import buttons ── */
+document.getElementById('btn-export-xl').addEventListener('click', exportToExcel);
+
+document.getElementById('btn-import-xl').addEventListener('click', () => {
+  document.getElementById('xlsx-file-input').click();
+});
+
+document.getElementById('xlsx-file-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) importFromExcel(file);
 });
 
 document.getElementById('btn-import-nl')?.addEventListener('click', async () => {
