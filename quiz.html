@@ -1719,7 +1719,7 @@ function submitAddWord() {
   const example = document.getElementById('add-example').value.trim();
   const tips    = document.getElementById('add-tips').value.trim();
   if (!source || !target) { showToast('Please fill in source word and translation'); return; }
-  addWord({ source_word: source, target_translation: target, language_pair: selectedLang, example_sentence: example || null, tips: tips || null });
+  addWord({ source_word: source, target_translation: target, language_pair: selectedLang, example_sentence: example || null, ...(tips ? { tips } : {}) });
   document.getElementById('add-source').value  = '';
   document.getElementById('add-target').value  = '';
   document.getElementById('add-example').value = '';
@@ -1759,7 +1759,10 @@ function rateOf(wordId) {
 function renderVocab() {
   const list  = getFilteredVocab();
   const tbody = document.getElementById('vocab-tbody');
-  document.getElementById('word-count').textContent = `${list.length} word${list.length !== 1 ? 's' : ''}`;
+  const total = vocab.length;
+  const fil   = list.length;
+  document.getElementById('word-count').textContent =
+    (fil < total) ? `${fil} / ${total} mots` : `${total} mot${total !== 1 ? 's' : ''}`;
 
   if (!vocab.length) {
     tbody.innerHTML = `<tr><td colspan="10"><div class="qz-empty">
@@ -1888,7 +1891,7 @@ function attachEditListeners() {
     const tips   = document.getElementById('ei-tips')?.value.trim();
     const lang   = document.querySelector('.editing-row .qz-lang-btn.active')?.dataset.lang || 'EN→FR';
     if (!source || !target) { showToast('Source and translation are required'); return; }
-    await updateWord(id, { source_word: source, target_translation: target, language_pair: lang, example_sentence: example || null, tips: tips || null });
+    await updateWord(id, { source_word: source, target_translation: target, language_pair: lang, example_sentence: example || null, ...(tips ? { tips } : { tips: null }) });
     editingId = null;
   });
 
