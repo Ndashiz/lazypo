@@ -2008,22 +2008,26 @@ function filterVocabForQuiz(filter) {
 
 function buildQuizQueue(filter, count, mode) {
   let list = filterVocabForQuiz(filter);
-
-  // Sort: untested first, then lowest success rate
-  list.sort((a, b) => {
-    const pa = progress[a.id], pb = progress[b.id];
-    const ra = (pa && pa.attempts) ? pa.correct / pa.attempts : -1;
-    const rb = (pb && pb.attempts) ? pb.correct / pb.attempts : -1;
-    return ra - rb;
-  });
-
-  // Take count (prioritize low-rate, then shuffle the rest)
   const n = (count === 'all') ? list.length : Math.min(count, list.length);
-  const priority = list.slice(0, Math.ceil(n * 0.6));
-  const rest     = list.slice(Math.ceil(n * 0.6), n);
-  shuffle(rest);
-  list = [...priority, ...rest].slice(0, n);
-  shuffle(list);
+
+  if (mode === 'auto') {
+    // Pure random — no bias toward date added or score
+    shuffle(list);
+    list = list.slice(0, n);
+  } else {
+    // forward / reverse: untested first, then hardest
+    list.sort((a, b) => {
+      const pa = progress[a.id], pb = progress[b.id];
+      const ra = (pa && pa.attempts) ? pa.correct / pa.attempts : -1;
+      const rb = (pb && pb.attempts) ? pb.correct / pb.attempts : -1;
+      return ra - rb;
+    });
+    const priority = list.slice(0, Math.ceil(n * 0.6));
+    const rest     = list.slice(Math.ceil(n * 0.6), n);
+    shuffle(rest);
+    list = [...priority, ...rest].slice(0, n);
+    shuffle(list);
+  }
 
   return list.map(word => {
     // In auto mode, randomly pick direction per word
