@@ -318,7 +318,7 @@ body { padding-left: 64px; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  overflow: hidden;
+  overflow-x: auto;  /* horizontal scroll when too many columns */
 }
 .qz-table {
   width: 100%;
@@ -930,8 +930,11 @@ tr.row-selected { background: rgba(59,130,246,.05); }
 /* ── Tip column in vocab table ── */
 .tip-cell {
   font-size: 12.5px; color: var(--muted); font-style: italic;
-  max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* Constrain wide columns so Actions stays visible */
+.qz-table td.example { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qz-table td:last-child { white-space: nowrap; } /* Actions — never wrap */
 
 /* ── Excel import/export ── */
 .qz-excel-row {
@@ -1296,6 +1299,25 @@ tr.row-selected { background: rgba(59,130,246,.05); }
 <script src="auth.js"></script>
 <script src="focusfm.js"></script>
 <script src="session.js"></script>
+<script src="demo.js"></script>
+<script>
+window.loadDemoData = async function () {
+  if (!currentUser) return;
+  const demoWords = [
+    { source_word: 'resilience',   target_translation: 'résilience',       language_pair: 'EN→FR', example_sentence: 'Resilience is key to success.' },
+    { source_word: 'benchmark',    target_translation: 'référence / jalon', language_pair: 'EN→FR', example_sentence: 'This sets the benchmark.' },
+    { source_word: 'de fiets',     target_translation: 'vélo',              language_pair: 'nl-fr',  example_sentence: 'Ik ga op de fiets naar school.' },
+    { source_word: 'het weer',     target_translation: 'la météo / le temps', language_pair: 'nl-fr', example_sentence: 'Het weer is mooi vandaag.' },
+    { source_word: 'leverage',     target_translation: 'levier / tirer parti de', language_pair: 'EN→FR', example_sentence: 'We can leverage this opportunity.', tips: 'Penser à "levier" en français' },
+  ];
+  for (const w of demoWords) {
+    await window.sb.from('vocabulary').insert({ ...w, user_id: currentUser.id }).select();
+  }
+  await loadVocab();
+  renderVocab();
+  updateAvailNote();
+};
+</script>
 <script>
 /* ═══════════════════════════════════════════════════════════
    KNOWLEDGE QUIZ — Application Logic
@@ -2008,22 +2030,26 @@ function filterVocabForQuiz(filter) {
 
 function buildQuizQueue(filter, count, mode) {
   let list = filterVocabForQuiz(filter);
-
-  // Sort: untested first, then lowest success rate
-  list.sort((a, b) => {
-    const pa = progress[a.id], pb = progress[b.id];
-    const ra = (pa && pa.attempts) ? pa.correct / pa.attempts : -1;
-    const rb = (pb && pb.attempts) ? pb.correct / pb.attempts : -1;
-    return ra - rb;
-  });
-
-  // Take count (prioritize low-rate, then shuffle the rest)
   const n = (count === 'all') ? list.length : Math.min(count, list.length);
-  const priority = list.slice(0, Math.ceil(n * 0.6));
-  const rest     = list.slice(Math.ceil(n * 0.6), n);
-  shuffle(rest);
-  list = [...priority, ...rest].slice(0, n);
-  shuffle(list);
+
+  if (mode === 'auto') {
+    // Pure random — no bias toward date added or score
+    shuffle(list);
+    list = list.slice(0, n);
+  } else {
+    // forward / reverse: untested first, then hardest
+    list.sort((a, b) => {
+      const pa = progress[a.id], pb = progress[b.id];
+      const ra = (pa && pa.attempts) ? pa.correct / pa.attempts : -1;
+      const rb = (pb && pb.attempts) ? pb.correct / pb.attempts : -1;
+      return ra - rb;
+    });
+    const priority = list.slice(0, Math.ceil(n * 0.6));
+    const rest     = list.slice(Math.ceil(n * 0.6), n);
+    shuffle(rest);
+    list = [...priority, ...rest].slice(0, n);
+    shuffle(list);
+  }
 
   return list.map(word => {
     // In auto mode, randomly pick direction per word

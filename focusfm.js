@@ -522,8 +522,10 @@ html.fm-focus-mode #_fm_mini { border-color:#fbbf24; box-shadow:0 0 20px rgba(25
         <button class="fm-connect-chip" id="_fm_connect_btn">
           <svg width="12" height="12" viewBox="0 0 168 168" fill="currentColor"><path d="M84 0C37.6 0 0 37.6 0 84s37.6 84 84 84 84-37.6 84-84S130.4 0 84 0zm38.5 121.2c-1.6 2.6-5 3.4-7.6 1.8C94.1 110.3 67.9 107.4 37.1 114.5c-3 .7-5.9-1.1-6.6-4.1-.7-3 1.1-5.9 4.1-6.6 33.7-7.7 62.7-4.4 86.1 9.8 2.6 1.6 3.4 5 1.8 7.6zm10.3-22.8c-2 3.2-6.2 4.2-9.4 2.2C99.6 85.9 63.4 81.6 35.3 90.2c-3.5 1-7.1-1-8.1-4.4-1-3.5 1-7.1 4.4-8.1 32.1-9.8 72-5 99.1 11.7 3.2 2 4.2 6.2 2.1 9zm.9-23.7C108.9 57.8 62 56.3 34.2 64.3c-4.1 1.2-8.5-1.1-9.8-5.3-1.2-4.1 1.1-8.5 5.3-9.8C60 40.4 111 42.1 138.6 58c3.8 2.2 5.1 7 2.9 10.7-.2.3-.5.6-.8 1z"/></svg>
           Connect
-        </button>`;
+        </button>
+        <button class="fm-mini-btn fm-mini-dismiss" id="_fm_mini_dismiss" title="Masquer" style="margin-left:2px;opacity:.45;font-size:13px;">✕</button>`;
       el.querySelector('#_fm_connect_btn')?.addEventListener('click', startOAuth);
+      el.querySelector('#_fm_mini_dismiss')?.addEventListener('click', e => { e.stopPropagation(); hideMini(); });
       return;
     }
 
@@ -552,12 +554,26 @@ html.fm-focus-mode #_fm_mini { border-color:#fbbf24; box-shadow:0 0 20px rgba(25
         <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
           <polyline points="${isExpanded?'18 15 12 9 6 15':'6 9 12 15 18 9'}"/>
         </svg>
-      </button>`;
+      </button>
+      <button class="fm-mini-btn fm-mini-dismiss" id="_fm_mini_dismiss" title="Masquer" style="opacity:.35;font-size:13px;">✕</button>`;
 
     el.querySelector('#_fm_mini_prev')?.addEventListener('click', e => { e.stopPropagation(); prevTrack(); });
     el.querySelector('#_fm_mini_play')?.addEventListener('click', e => { e.stopPropagation(); togglePlay(); });
     el.querySelector('#_fm_mini_next')?.addEventListener('click', e => { e.stopPropagation(); nextTrack(); });
     el.querySelector('#_fm_mini_expand')?.addEventListener('click', e => { e.stopPropagation(); toggleExpand(); });
+    el.querySelector('#_fm_mini_dismiss')?.addEventListener('click', e => { e.stopPropagation(); hideMini(); });
+  }
+
+  function hideMini() {
+    const el = document.getElementById('_fm_mini');
+    if (el) el.style.display = 'none';
+    closePanelEl();
+  }
+
+  function showMini() {
+    const el = getMiniEl();
+    el.style.display = '';
+    render();
   }
 
   function toggleExpand() {
@@ -774,6 +790,6 @@ html.fm-focus-mode #_fm_mini { border-color:#fbbf24; box-shadow:0 0 20px rgba(25
     REDIRECT_URI,
     isPlaying: () => !isPaused,
     toggle: () => toggleExpand(),
-    open:   () => { if (!isExpanded) toggleExpand(); },
+    open:   () => { showMini(); if (!isExpanded) toggleExpand(); },
   };
 })();
