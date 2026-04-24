@@ -774,6 +774,108 @@ body { padding-left: 64px; }
 }
 
 /* ══════════════════════════════════════
+   VERBES IRRÉGULIERS
+══════════════════════════════════════ */
+.vb-intro {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 28px;
+}
+.vb-intro-icon {
+  font-size: 36px; width: 56px; height: 56px; border-radius: 14px;
+  background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.2);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.vb-intro-title { font-size: 18px; font-weight: 700; }
+.vb-intro-sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.vb-setup-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px;
+}
+@media (max-width: 540px) { .vb-setup-row { grid-template-columns: 1fr; } }
+.vb-setup-group { display: flex; flex-direction: column; gap: 8px; }
+.vb-setup-label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .08em; color: var(--muted);
+}
+.vb-pill-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+/* Verb tag */
+.vb-verb-tag {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.22);
+  border-radius: 20px; padding: 6px 16px; margin-bottom: 20px;
+  font-size: 16px; font-weight: 700; color: var(--accent2);
+}
+.vb-form-badge {
+  font-size: 10px; font-weight: 600; letter-spacing: .07em;
+  text-transform: uppercase; padding: 2px 9px; border-radius: 10px;
+  background: rgba(255,255,255,.07); color: var(--muted);
+  font-family: 'DM Mono', monospace;
+}
+
+/* Sentence with blank */
+.vb-sentence {
+  font-size: 22px; font-weight: 500; line-height: 1.6;
+  color: var(--text); margin-bottom: 24px; min-height: 58px;
+}
+.vb-blank {
+  display: inline-block; min-width: 80px;
+  border-bottom: 3px solid var(--accent2);
+  margin: 0 3px; vertical-align: bottom;
+}
+
+/* MCQ */
+.vb-mcq-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;
+}
+@media (max-width: 420px) { .vb-mcq-grid { grid-template-columns: 1fr; } }
+.vb-mcq-btn {
+  padding: 14px 12px; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--r); font-family: 'DM Mono', monospace; font-size: 17px;
+  font-weight: 600; color: var(--text); cursor: pointer; text-align: center;
+  transition: all .15s;
+}
+.vb-mcq-btn:hover:not(:disabled) {
+  border-color: var(--accent2); color: var(--accent2);
+  background: rgba(59,130,246,.07);
+}
+.vb-mcq-btn.mcq-ok   { background: rgba(34,197,94,.1); border-color: rgba(34,197,94,.5); color: #86efac; }
+.vb-mcq-btn.mcq-err  { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.4); color: #fca5a5; }
+.vb-mcq-btn:disabled { cursor: default; }
+
+/* Paradigm card */
+.vb-paradigm {
+  display: none; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: 12px; padding: 16px 18px; margin-bottom: 16px;
+}
+.vb-paradigm.show { display: block; }
+.vb-paradigm-title {
+  font-size: 10px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--muted); margin-bottom: 12px;
+}
+.vb-paradigm-row {
+  display: flex; flex-wrap: wrap; border: 1px solid var(--border);
+  border-radius: 8px; overflow: hidden;
+}
+.vb-pcell {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 10px 16px; flex: 1; text-align: center;
+}
+.vb-pcell + .vb-pcell { border-left: 1px solid var(--border); }
+.vb-pcell-lbl {
+  font-size: 9px; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .07em; margin-bottom: 5px; font-family: 'DM Mono', monospace;
+}
+.vb-pcell-val {
+  font-family: 'DM Mono', monospace; font-size: 18px; font-weight: 700; color: var(--text);
+}
+.vb-pcell-val.hi { color: var(--accent2); }
+.vb-pcell-aux { font-size: 10px; color: var(--muted); margin-top: 3px; font-style: italic; }
+.vb-sentence-reveal {
+  font-size: 14px; color: var(--muted); font-style: italic;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border);
+}
+.vb-sentence-reveal .vb-ok-word { color: var(--success); font-style: normal; font-weight: 700; }
+
+/* ══════════════════════════════════════
    REVIEW SCREEN
 ══════════════════════════════════════ */
 .qz-review-wrap {
@@ -1183,6 +1285,7 @@ tr.row-selected { background: rgba(59,130,246,.05); }
       <button class="qz-tab active" data-tab="vocab"    role="tab" aria-selected="true">📚 Vocabulary</button>
       <button class="qz-tab"        data-tab="quiz"     role="tab" aria-selected="false">🎯 Quiz</button>
       <button class="qz-tab"        data-tab="progress" role="tab" aria-selected="false">📊 Progress</button>
+      <button class="qz-tab"        data-tab="verbes"   role="tab" aria-selected="false">🔤 Verbes NL</button>
     </div>
   </div>
 
@@ -1575,6 +1678,188 @@ tr.row-selected { background: rgba(59,130,246,.05); }
       </table>
     </div>
   </section>
+
+  <!-- ════════════════════════════════
+       VIEW: VERBES IRRÉGULIERS NL
+  ════════════════════════════════ -->
+  <section class="qz-view" id="view-verbes" role="tabpanel" style="display:none;">
+
+    <!-- SETUP -->
+    <div id="vb-setup">
+      <div class="vb-intro">
+        <div class="vb-intro-icon">🔤</div>
+        <div>
+          <div class="vb-intro-title">Verbes Irréguliers — Néerlandais</div>
+          <div class="vb-intro-sub">Infinitif · O.V.T. (prétérit) · V.T.T. (participe passé + auxiliaire)</div>
+        </div>
+      </div>
+
+      <div class="vb-setup-row">
+        <div class="vb-setup-group">
+          <div class="vb-setup-label">Questions</div>
+          <div class="vb-pill-row" id="vb-count-pills">
+            <button class="qz-pill"        data-count="5">5</button>
+            <button class="qz-pill active" data-count="10">10</button>
+            <button class="qz-pill"        data-count="20">20</button>
+            <button class="qz-pill"        data-count="all">Tout</button>
+          </div>
+        </div>
+        <div class="vb-setup-group">
+          <div class="vb-setup-label">Formes ciblées</div>
+          <div class="vb-pill-row" id="vb-form-pills">
+            <button class="qz-pill active" data-form="all">Toutes</button>
+            <button class="qz-pill"        data-form="ovt">OVT</button>
+            <button class="qz-pill"        data-form="vtt">VTT</button>
+          </div>
+        </div>
+      </div>
+      <button class="btn-primary" id="vb-start-btn" style="width:100%;padding:13px;font-size:15px;">
+        Commencer →
+      </button>
+      <p class="qz-avail-note" id="vb-avail-note"></p>
+    </div>
+
+    <!-- QUIZ ACTIF -->
+    <div id="vb-quiz" class="qz-card" style="display:none;">
+      <div class="qz-progress-bar-wrap">
+        <div class="qz-progress-bar-bg">
+          <div class="qz-progress-bar-fill" id="vb-prog-fill" style="width:0%"></div>
+        </div>
+        <span class="qz-progress-text" id="vb-prog-text">1 / 10</span>
+      </div>
+
+      <div class="vb-verb-tag">
+        <span id="vb-verb-name">rijden</span>
+        <span class="vb-form-badge" id="vb-form-badge">OVT</span>
+      </div>
+
+      <div class="vb-sentence" id="vb-sentence"></div>
+      <div class="qz-question-example" id="vb-prompt"></div>
+
+      <!-- Saisie libre -->
+      <div id="vb-input-zone" class="qz-answer-row">
+        <input type="text" id="vb-answer-input" class="qz-answer-input"
+          placeholder="Votre réponse…" autocomplete="off" autocorrect="off" spellcheck="false">
+        <button class="btn-primary" id="vb-check-btn" style="padding:14px 20px;">Vérifier</button>
+      </div>
+
+      <!-- QCM -->
+      <div id="vb-mcq-zone" class="vb-mcq-grid" style="display:none;"></div>
+
+      <!-- Feedback -->
+      <div class="qz-feedback" id="vb-feedback"></div>
+
+      <!-- Paradigme complet -->
+      <div class="vb-paradigm" id="vb-paradigm">
+        <div class="vb-paradigm-title">Conjugaison complète</div>
+        <div class="vb-paradigm-row" id="vb-paradigm-row"></div>
+        <div class="vb-sentence-reveal" id="vb-sentence-reveal"></div>
+      </div>
+
+      <!-- Next -->
+      <div class="qz-action-row" id="vb-next-row" style="display:none;">
+        <button class="btn-primary" id="vb-next-btn">Suivant →</button>
+      </div>
+    </div>
+
+    <!-- RÉSUMÉ -->
+    <div id="vb-summary" class="qz-summary" style="display:none;">
+      <div class="qz-summary-card">
+        <div class="qz-score-big" id="vb-score-big">0 / 0</div>
+        <div class="qz-score-pct" id="vb-score-sub">0%</div>
+        <div class="qz-stars"     id="vb-stars">⭐</div>
+        <div class="qz-breakdown">
+          <div class="qz-breakdown-item">
+            <div class="val" id="vb-bk-correct" style="color:var(--success)">0</div>
+            <div class="lbl">Corrects</div>
+          </div>
+          <div class="qz-breakdown-item">
+            <div class="val" id="vb-bk-wrong" style="color:var(--danger)">0</div>
+            <div class="lbl">Erreurs</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="vb-missed-section" class="qz-missed-list" style="display:none;">
+        <div class="qz-missed-header">Erreurs à revoir</div>
+        <div id="vb-missed-list"></div>
+      </div>
+
+      <div class="qz-summary-btns">
+        <button class="btn-secondary" id="vb-btn-restart">Rejouer</button>
+        <button class="btn-primary"   id="vb-btn-progress">Voir le progrès</button>
+      </div>
+    </div>
+
+    <!-- PROGRÈS PAR VERBE -->
+    <div id="vb-progress-panel" style="display:none;">
+      <div class="qz-stats-row" style="margin-bottom:20px;">
+        <div class="qz-stat-card">
+          <div class="qz-stat-label">Verbes testés</div>
+          <div class="qz-stat-value accent" id="vb-ps-tested">—</div>
+        </div>
+        <div class="qz-stat-card">
+          <div class="qz-stat-label">Maîtrisés</div>
+          <div class="qz-stat-value good" id="vb-ps-mastered">—</div>
+        </div>
+        <div class="qz-stat-card">
+          <div class="qz-stat-label">À revoir</div>
+          <div class="qz-stat-value danger" id="vb-ps-needs">—</div>
+        </div>
+        <div class="qz-stat-card">
+          <div class="qz-stat-label">Taux moyen</div>
+          <div class="qz-stat-value warning" id="vb-ps-avg">—</div>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button class="btn-secondary" id="vb-back-setup" style="font-size:13px;padding:8px 16px;">← Nouveau jeu</button>
+      </div>
+
+      <div class="qz-table-wrap">
+        <table class="qz-table">
+          <thead><tr>
+            <th>Infinitif</th>
+            <th>OVT</th>
+            <th>VTT</th>
+            <th>Aux.</th>
+            <th>Tentatives</th>
+            <th>Taux</th>
+            <th>Statut</th>
+          </tr></thead>
+          <tbody id="vb-prog-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- RÉFÉRENCE VERBES -->
+    <div id="vb-ref-panel" style="display:none;">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+        <button class="btn-secondary" id="vb-ref-back" style="font-size:13px;padding:8px 16px;">← Retour</button>
+      </div>
+      <div class="qz-table-wrap">
+        <table class="qz-table">
+          <thead><tr>
+            <th>Infinitif</th>
+            <th>OVT (prétérit)</th>
+            <th>VTT (participe)</th>
+            <th>Aux.</th>
+            <th>Exemple OVT</th>
+          </tr></thead>
+          <tbody id="vb-ref-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Lien vers la liste de référence -->
+    <div id="vb-ref-link-row" style="text-align:center;margin-top:16px;">
+      <button class="btn-secondary" id="vb-show-ref" style="font-size:13px;padding:8px 18px;">
+        📋 Voir la liste complète des verbes
+      </button>
+    </div>
+
+  </section>
+
 </main>
 
 <div id="qz-toast"></div>
@@ -2948,6 +3233,9 @@ function switchTab(tabId) {
       document.getElementById('quiz-summary').style.display = 'none';
     }
   }
+  if (tabId === 'verbes') {
+    vbUpdateNote();
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -3090,6 +3378,423 @@ function showToast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
 }
+
+/* ═══════════════════════════════════════════════════════════
+   MODULE VERBES IRRÉGULIERS NL
+═══════════════════════════════════════════════════════════ */
+
+const VB_VERBS = [
+  { id:'zijn',       infinitief:'zijn',       ovt:'was',       vtt:'geweest',    aux:'zijn',
+    ex:{ infinitief:'Ik wil altijd eerlijk ___.', ovt:'Gisteren ___ het erg koud buiten.', vtt:'We zijn al twee keer in Parijs ___.' }},
+  { id:'hebben',     infinitief:'hebben',     ovt:'had',       vtt:'gehad',      aux:'hebben',
+    ex:{ infinitief:'Wil jij een kopje koffie ___?', ovt:'Ze ___ gisteren veel huiswerk.', vtt:'Hij heeft altijd veel vrienden ___.' }},
+  { id:'worden',     infinitief:'worden',     ovt:'werd',      vtt:'geworden',   aux:'zijn',
+    ex:{ infinitief:'Ik wil later leraar ___.', ovt:'Het ___ snel donker gisteren.', vtt:'Ze is snel bekend ___.' }},
+  { id:'gaan',       infinitief:'gaan',       ovt:'ging',      vtt:'gegaan',     aux:'zijn',
+    ex:{ infinitief:'We willen morgen naar het strand ___.', ovt:'Mijn vader ___ vroeg naar zijn werk.', vtt:'Ze is al naar huis ___.' }},
+  { id:'komen',      infinitief:'komen',      ovt:'kwam',      vtt:'gekomen',    aux:'zijn',
+    ex:{ infinitief:'Kun jij morgen ___?', ovt:'Hij ___ laat op het feestje.', vtt:'De trein is eindelijk ___.' }},
+  { id:'zien',       infinitief:'zien',       ovt:'zag',       vtt:'gezien',     aux:'hebben',
+    ex:{ infinitief:'Kan jij dat bord ___?', ovt:'Ik ___ haar gisteren in de supermarkt.', vtt:'Heb jij die film al ___?' }},
+  { id:'doen',       infinitief:'doen',       ovt:'deed',      vtt:'gedaan',     aux:'hebben',
+    ex:{ infinitief:'Wat wil je vandaag ___?', ovt:'Hij ___ zijn best op het examen.', vtt:'Ze heeft het werk al ___.' }},
+  { id:'schrijven',  infinitief:'schrijven',  ovt:'schreef',   vtt:'geschreven', aux:'hebben',
+    ex:{ infinitief:'Kun jij dit woord ___?', ovt:'Hij ___ een lange brief aan zijn moeder.', vtt:'Ze heeft een boek over reizen ___.' }},
+  { id:'rijden',     infinitief:'rijden',     ovt:'reed',      vtt:'gereden',    aux:'hebben',
+    ex:{ infinitief:'Ik ga morgen met de auto ___.', ovt:'Hij ___ gisteren naar Amsterdam.', vtt:'Ze heeft vijf uur lang ___.' }},
+  { id:'blijven',    infinitief:'blijven',    ovt:'bleef',     vtt:'gebleven',   aux:'zijn',
+    ex:{ infinitief:'Wil je vanavond ___?', ovt:'Ze ___ tot middernacht op het feest.', vtt:'Hij is de hele dag thuis ___.' }},
+  { id:'lopen',      infinitief:'lopen',      ovt:'liep',      vtt:'gelopen',    aux:'hebben',
+    ex:{ infinitief:'We gaan elke ochtend ___.', ovt:'Ze ___ snel naar het station.', vtt:'We hebben tien kilometer ___.' }},
+  { id:'denken',     infinitief:'denken',     ovt:'dacht',     vtt:'gedacht',    aux:'hebben',
+    ex:{ infinitief:'Je moet goed ___ voor je antwoordt.', ovt:'Ik ___ dat hij ziek was.', vtt:'We hadden er nooit aan ___.' }},
+  { id:'brengen',    infinitief:'brengen',    ovt:'bracht',    vtt:'gebracht',   aux:'hebben',
+    ex:{ infinitief:'Kun jij de kinderen naar school ___?', ovt:'Hij ___ bloemen mee voor zijn moeder.', vtt:'Ze heeft de brief naar het postkantoor ___.' }},
+  { id:'vinden',     infinitief:'vinden',     ovt:'vond',      vtt:'gevonden',   aux:'hebben',
+    ex:{ infinitief:'Kun jij mijn sleutels ___?', ovt:'Ze ___ een portemonnee op straat.', vtt:'Hij heeft eindelijk een nieuwe baan ___.' }},
+  { id:'lezen',      infinitief:'lezen',      ovt:'las',       vtt:'gelezen',    aux:'hebben',
+    ex:{ infinitief:'Ik ga elke avond een boek ___.', ovt:'Ze ___ het boek in één dag.', vtt:'Heb jij dit artikel al ___?' }},
+  { id:'spreken',    infinitief:'spreken',    ovt:'sprak',     vtt:'gesproken',  aux:'hebben',
+    ex:{ infinitief:'Kun jij Nederlands ___?', ovt:'Hij ___ langzaam met de kinderen.', vtt:'Hebben jullie de directeur al ___?' }},
+  { id:'helpen',     infinitief:'helpen',     ovt:'hielp',     vtt:'geholpen',   aux:'hebben',
+    ex:{ infinitief:'Kun jij me even ___?', ovt:'Ze ___ haar buurman met de boodschappen.', vtt:'De arts heeft veel patiënten ___.' }},
+  { id:'geven',      infinitief:'geven',      ovt:'gaf',       vtt:'gegeven',    aux:'hebben',
+    ex:{ infinitief:'Wil je mij je telefoonnummer ___?', ovt:'Ze ___ hem een cadeau voor zijn verjaardag.', vtt:'De leraar heeft ons veel huiswerk ___.' }},
+  { id:'nemen',      infinitief:'nemen',      ovt:'nam',       vtt:'genomen',    aux:'hebben',
+    ex:{ infinitief:'Wil je suiker ___ in je koffie?', ovt:'Hij ___ de trein naar Utrecht.', vtt:'Ze heeft de verkeerde weg ___.' }},
+  { id:'kopen',      infinitief:'kopen',      ovt:'kocht',     vtt:'gekocht',    aux:'hebben',
+    ex:{ infinitief:'Ik ga morgen een fiets ___.', ovt:'Ze ___ een nieuw jasje in de winkel.', vtt:'Hij heeft een appartement in Amsterdam ___.' }},
+  { id:'beginnen',   infinitief:'beginnen',   ovt:'begon',     vtt:'begonnen',   aux:'zijn',
+    ex:{ infinitief:'De les gaat om 9 uur ___.', ovt:'Het concert ___ later dan gepland.', vtt:'Ze is net met haar nieuwe baan ___.' }},
+  { id:'vergeten',   infinitief:'vergeten',   ovt:'vergat',    vtt:'vergeten',   aux:'hebben',
+    ex:{ infinitief:'Je mag dit nooit ___!', ovt:'Ze ___ haar tas in de trein.', vtt:'Ik heb zijn naam helemaal ___.' }},
+  { id:'houden',     infinitief:'houden',     ovt:'hield',     vtt:'gehouden',   aux:'hebben',
+    ex:{ infinitief:'Je moet je aan de regels ___.', ovt:'Hij ___ zijn belofte.', vtt:'Ze heeft een mooie speech ___.' }},
+  { id:'laten',      infinitief:'laten',      ovt:'liet',      vtt:'gelaten',    aux:'hebben',
+    ex:{ infinitief:'Moet je de deur open ___?', ovt:'Ze ___ haar kinderen lang buiten spelen.', vtt:'Hij heeft zijn auto in de garage ___.' }},
+  { id:'vallen',     infinitief:'vallen',     ovt:'viel',      vtt:'gevallen',   aux:'zijn',
+    ex:{ infinitief:'Pas op, je gaat ___!', ovt:'Hij ___ op het ijs en brak zijn pols.', vtt:'Het kind is van de fiets ___.' }},
+  { id:'slapen',     infinitief:'slapen',     ovt:'sliep',     vtt:'geslapen',   aux:'hebben',
+    ex:{ infinitief:'De baby wil ___.', ovt:'Ik ___ gisternacht heel slecht.', vtt:'Heb jij goed ___?' }},
+  { id:'stijgen',    infinitief:'stijgen',    ovt:'steeg',     vtt:'gestegen',   aux:'zijn',
+    ex:{ infinitief:'De temperatuur gaat dit weekend ___.', ovt:'De prijs ___ vorig jaar met 10%.', vtt:'De pensioenen zijn dit jaar ___.' }},
+  { id:'kiezen',     infinitief:'kiezen',     ovt:'koos',      vtt:'gekozen',    aux:'hebben',
+    ex:{ infinitief:'Je mag zelf ___.', ovt:'Ze ___ de rode jurk voor het feest.', vtt:'De president is gisteren ___.' }},
+  { id:'vertrekken', infinitief:'vertrekken', ovt:'vertrok',   vtt:'vertrokken', aux:'zijn',
+    ex:{ infinitief:'We moeten om 8 uur ___.', ovt:'De trein ___ twee minuten te laat.', vtt:'Ze is vorig jaar naar Canada ___.' }},
+  { id:'staan',      infinitief:'staan',      ovt:'stond',     vtt:'gestaan',    aux:'hebben',
+    ex:{ infinitief:'Je moet hier ___!', ovt:'Ze ___ lang in de rij bij de kassa.', vtt:'Het standbeeld heeft daar altijd ___.' }},
+  { id:'zitten',     infinitief:'zitten',     ovt:'zat',       vtt:'gezeten',    aux:'hebben',
+    ex:{ infinitief:'Wil je hier naast mij ___?', ovt:'Hij ___ de hele avond op de bank.', vtt:'Ze heeft uren op het perron ___.' }},
+  { id:'liggen',     infinitief:'liggen',     ovt:'lag',       vtt:'gelegen',    aux:'hebben',
+    ex:{ infinitief:'Ik wil even ___.', ovt:'Het boek ___ op de tafel.', vtt:'Ze heeft ziek in bed ___.' }},
+  { id:'snijden',    infinitief:'snijden',    ovt:'sneed',     vtt:'gesneden',   aux:'hebben',
+    ex:{ infinitief:'Kun jij het brood ___?', ovt:'Ze ___ de groenten voor de soep.', vtt:'Hij heeft zich in zijn vinger ___.' }},
+  { id:'weten',      infinitief:'weten',      ovt:'wist',      vtt:'geweten',    aux:'hebben',
+    ex:{ infinitief:'Hoe kun je dat ___?', ovt:'Ik ___ niet wat ik moest zeggen.', vtt:'Dat had ik nooit ___.' }},
+  { id:'roepen',     infinitief:'roepen',     ovt:'riep',      vtt:'geroepen',   aux:'hebben',
+    ex:{ infinitief:'Je mag niet zo hard ___.', ovt:'Ze ___ zijn naam over de straat.', vtt:'Ze heeft hem al ___.' }},
+  { id:'vliegen',    infinitief:'vliegen',    ovt:'vloog',     vtt:'gevlogen',   aux:'hebben',
+    ex:{ infinitief:'Vogels kunnen ___.', ovt:'Het vliegtuig ___ over de stad.', vtt:'We hebben drie uur lang ___.' }},
+  { id:'zwemmen',    infinitief:'zwemmen',    ovt:'zwom',      vtt:'gezwommen',  aux:'hebben',
+    ex:{ infinitief:'Hij kan goed ___.', ovt:'Ze ___ elke ochtend een kilometer.', vtt:'We hebben vandaag ___.' }},
+  { id:'dragen',     infinitief:'dragen',     ovt:'droeg',     vtt:'gedragen',   aux:'hebben',
+    ex:{ infinitief:'Wil je dit pakket ___?', ovt:'Hij ___ een zware rugzak op zijn rug.', vtt:'Ze heeft altijd mooie kleren ___.' }},
+  { id:'vragen',     infinitief:'vragen',     ovt:'vroeg',     vtt:'gevraagd',   aux:'hebben',
+    ex:{ infinitief:'Ik wil je iets ___.', ovt:'Ze ___ hem om hulp.', vtt:'Heb jij hem al om toestemming ___?' }},
+  { id:'schieten',   infinitief:'schieten',   ovt:'schoot',    vtt:'geschoten',  aux:'hebben',
+    ex:{ infinitief:'Je mag hier niet ___.', ovt:'De speler ___ de bal in het doel.', vtt:'Hij heeft drie keer ___.' }},
+];
+
+const VB_FORM_LABELS = { infinitief: 'Infinitif', ovt: 'O.V.T.', vtt: 'V.T.T.' };
+
+/* ── State ── */
+let vbQueue    = [];
+let vbIndex    = 0;
+let vbAnswers  = [];
+let vbProgress = {};
+let vbCount    = 10;
+let vbFormFilter = 'all';
+
+function vbLoadProgress() {
+  try { vbProgress = JSON.parse(localStorage.getItem('lazypo_verbs_progress') || '{}'); }
+  catch { vbProgress = {}; }
+}
+function vbSaveProgress() {
+  localStorage.setItem('lazypo_verbs_progress', JSON.stringify(vbProgress));
+}
+function vbRecord(verbId, correct) {
+  if (!vbProgress[verbId]) vbProgress[verbId] = { attempts: 0, correct: 0 };
+  vbProgress[verbId].attempts++;
+  if (correct) vbProgress[verbId].correct++;
+  vbSaveProgress();
+}
+
+function vbShuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ── Queue ── */
+function vbBuildQueue(count, formFilter) {
+  const forms = formFilter === 'all' ? ['infinitief', 'ovt', 'vtt'] : [formFilter];
+  let pool = [];
+  VB_VERBS.forEach(v => forms.forEach(f => pool.push({ verb: v, form: f })));
+
+  pool.sort((a, b) => {
+    const ra = vbProgress[a.verb.id]?.attempts
+      ? vbProgress[a.verb.id].correct / vbProgress[a.verb.id].attempts : -1;
+    const rb = vbProgress[b.verb.id]?.attempts
+      ? vbProgress[b.verb.id].correct / vbProgress[b.verb.id].attempts : -1;
+    return (ra - rb) + (Math.random() * .2 - .1);
+  });
+
+  const n = count === 'all' ? pool.length : Math.min(count, pool.length);
+  pool = vbShuffle(pool.slice(0, n));
+  return pool.map(q => ({ ...q, useMCQ: Math.random() < 0.5 }));
+}
+
+/* ── MCQ distractors ── */
+function vbGetOptions(verb, form, correct) {
+  const pool = vbShuffle(VB_VERBS.filter(v => v.id !== verb.id).map(v => v[form]));
+  return vbShuffle([correct, ...pool.slice(0, 3)]);
+}
+
+/* ── Render sentence ── */
+function vbRenderSentence(tpl, answer, revealed) {
+  if (revealed) {
+    return tpl.replace('___', `<span class="vb-ok-word">${escHtml(answer)}</span>`);
+  }
+  const w = Math.max(70, answer.length * 12);
+  return tpl.replace('___', `<span class="vb-blank" style="min-width:${w}px">&nbsp;</span>`);
+}
+
+/* ── Show question ── */
+function vbShowQuestion() {
+  const q     = vbQueue[vbIndex];
+  const total = vbQueue.length;
+  document.getElementById('vb-prog-fill').style.width = Math.round((vbIndex / total) * 100) + '%';
+  document.getElementById('vb-prog-text').textContent = `${vbIndex + 1} / ${total}`;
+
+  document.getElementById('vb-verb-name').textContent  = q.verb.infinitief;
+  document.getElementById('vb-form-badge').textContent = VB_FORM_LABELS[q.form];
+
+  const answer = q.verb[q.form];
+  document.getElementById('vb-sentence').innerHTML =
+    vbRenderSentence(escHtml(q.verb.ex[q.form]).replace('___', '___'), answer, false);
+  document.getElementById('vb-prompt').textContent =
+    `Quelle est la forme ${VB_FORM_LABELS[q.form]} du verbe « ${q.verb.infinitief} » ?`;
+
+  // Reset
+  const fb = document.getElementById('vb-feedback');
+  fb.className = 'qz-feedback'; fb.innerHTML = '';
+  document.getElementById('vb-paradigm').classList.remove('show');
+  document.getElementById('vb-next-row').style.display = 'none';
+
+  if (q.useMCQ) {
+    document.getElementById('vb-input-zone').style.display = 'none';
+    document.getElementById('vb-mcq-zone').style.display   = 'grid';
+    const options = vbGetOptions(q.verb, q.form, answer);
+    document.getElementById('vb-mcq-zone').innerHTML = options.map(opt =>
+      `<button class="vb-mcq-btn" onclick="vbCheckMCQ(this,'${escHtml(answer)}')"
+        data-val="${escHtml(opt)}">${escHtml(opt)}</button>`
+    ).join('');
+  } else {
+    document.getElementById('vb-input-zone').style.display = 'flex';
+    document.getElementById('vb-mcq-zone').style.display   = 'none';
+    const inp = document.getElementById('vb-answer-input');
+    inp.value = ''; inp.className = 'qz-answer-input'; inp.disabled = false;
+    document.getElementById('vb-check-btn').style.display = 'inline-flex';
+    setTimeout(() => inp.focus(), 50);
+  }
+}
+
+function vbCheckMCQ(btn, correct) {
+  document.querySelectorAll('.vb-mcq-btn').forEach(b => b.disabled = true);
+  const given = btn.dataset.val;
+  const isOk  = given.toLowerCase() === correct.toLowerCase();
+  document.querySelectorAll('.vb-mcq-btn').forEach(b => {
+    if (b.dataset.val.toLowerCase() === correct.toLowerCase()) b.classList.add('mcq-ok');
+  });
+  if (!isOk) btn.classList.add('mcq-err');
+  vbShowFeedback(isOk, given, correct);
+}
+
+function vbCheckText() {
+  const q      = vbQueue[vbIndex];
+  const inp    = document.getElementById('vb-answer-input');
+  const given  = inp.value.trim();
+  if (!given) return;
+  const correct = q.verb[q.form];
+  const isOk    = given.toLowerCase() === correct.toLowerCase();
+  inp.disabled  = true;
+  inp.className = 'qz-answer-input ' + (isOk ? 'correct-flash' : 'wrong-flash');
+  document.getElementById('vb-check-btn').style.display = 'none';
+  vbShowFeedback(isOk, given, correct);
+}
+
+function vbShowFeedback(isOk, given, correct) {
+  const q  = vbQueue[vbIndex];
+  const fb = document.getElementById('vb-feedback');
+  if (isOk) {
+    fb.className = 'qz-feedback correct';
+    fb.innerHTML = '✓ Correct !';
+  } else {
+    fb.className = 'qz-feedback wrong';
+    fb.innerHTML = `✗ Incorrect <div class="qz-correct-answer">Bonne réponse : <strong>${escHtml(correct)}</strong></div>`;
+  }
+
+  // Paradigm
+  const paradigm = document.getElementById('vb-paradigm');
+  const row = document.getElementById('vb-paradigm-row');
+  row.innerHTML = ['infinitief','ovt','vtt'].map(f => `
+    <div class="vb-pcell">
+      <div class="vb-pcell-lbl">${VB_FORM_LABELS[f]}</div>
+      <div class="vb-pcell-val${f === q.form ? ' hi' : ''}">${escHtml(q.verb[f])}</div>
+      ${f === 'vtt' ? `<div class="vb-pcell-aux">${q.verb.aux}</div>` : ''}
+    </div>`).join('');
+
+  document.getElementById('vb-sentence-reveal').innerHTML =
+    vbRenderSentence(escHtml(q.verb.ex[q.form]).replace('___', '___'), q.verb[q.form], true);
+  paradigm.classList.add('show');
+
+  vbRecord(q.verb.id, isOk);
+  vbAnswers.push({ verb: q.verb, form: q.form, correct: isOk, given });
+
+  document.getElementById('vb-next-row').style.display = 'flex';
+  document.getElementById('vb-next-btn').focus();
+}
+
+function vbAdvance() {
+  vbIndex++;
+  if (vbIndex >= vbQueue.length) vbShowSummary();
+  else vbShowQuestion();
+}
+
+/* ── Summary ── */
+function vbShowSummary() {
+  document.getElementById('vb-quiz').style.display    = 'none';
+  document.getElementById('vb-summary').style.display = 'block';
+  document.getElementById('vb-ref-link-row').style.display = 'none';
+
+  const total   = vbAnswers.length;
+  const correct = vbAnswers.filter(a => a.correct).length;
+  const pct     = total > 0 ? Math.round((correct / total) * 100) : 0;
+
+  document.getElementById('vb-score-big').textContent  = `${correct} / ${total}`;
+  document.getElementById('vb-score-sub').textContent  = pct + '%';
+  document.getElementById('vb-stars').textContent      = pct >= 80 ? '⭐⭐⭐' : pct >= 50 ? '⭐⭐' : '⭐';
+  document.getElementById('vb-bk-correct').textContent = correct;
+  document.getElementById('vb-bk-wrong').textContent   = total - correct;
+
+  const missed = vbAnswers.filter(a => !a.correct);
+  const missedSec = document.getElementById('vb-missed-section');
+  if (missed.length) {
+    missedSec.style.display = 'block';
+    document.getElementById('vb-missed-list').innerHTML = missed.map(a => `
+      <div class="qz-missed-item">
+        <span style="display:flex;align-items:center;gap:8px;">
+          <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--muted)">${VB_FORM_LABELS[a.form]}</span>
+          <span class="qz-missed-word">${escHtml(a.verb.infinitief)}</span>
+        </span>
+        <span style="color:var(--muted);font-family:'DM Mono',monospace;font-size:13px;text-decoration:line-through">${escHtml(a.given||'—')}</span>
+        <span class="qz-missed-answer">→ ${escHtml(a.verb[a.form])}</span>
+      </div>`).join('');
+  } else {
+    missedSec.style.display = 'none';
+  }
+}
+
+/* ── Progress panel ── */
+function vbShowProgress() {
+  document.getElementById('vb-summary').style.display       = 'none';
+  document.getElementById('vb-setup').style.display         = 'none';
+  document.getElementById('vb-ref-link-row').style.display  = 'none';
+  document.getElementById('vb-progress-panel').style.display = 'block';
+
+  const tested   = VB_VERBS.filter(v => vbProgress[v.id]?.attempts > 0);
+  const mastered = VB_VERBS.filter(v => {
+    const p = vbProgress[v.id];
+    return p?.attempts >= 3 && (p.correct / p.attempts) >= 0.8;
+  }).length;
+  const needs = VB_VERBS.filter(v => {
+    const p = vbProgress[v.id];
+    return p?.attempts > 0 && (p.correct / p.attempts) < 0.5;
+  }).length;
+  const avg = tested.length > 0
+    ? Math.round(tested.reduce((s, v) => s + vbProgress[v.id].correct / vbProgress[v.id].attempts, 0) / tested.length * 100)
+    : null;
+
+  document.getElementById('vb-ps-tested').textContent   = `${tested.length} / ${VB_VERBS.length}`;
+  document.getElementById('vb-ps-mastered').textContent = mastered;
+  document.getElementById('vb-ps-needs').textContent    = needs;
+  document.getElementById('vb-ps-avg').textContent      = avg !== null ? avg + '%' : '—';
+
+  document.getElementById('vb-prog-tbody').innerHTML = VB_VERBS.map(v => {
+    const p    = vbProgress[v.id];
+    const att  = p?.attempts || 0;
+    const cor  = p?.correct  || 0;
+    const pct  = att > 0 ? Math.round((cor / att) * 100) : null;
+    const cls  = pct === null ? 'rate-none' : pct >= 80 ? 'rate-good' : pct >= 50 ? 'rate-mid' : 'rate-bad';
+    const statusDot = !att ? '⚫ Non testé'
+      : pct >= 80 && att >= 3 ? '🟢 Maîtrisé'
+      : pct < 50 ? '🔴 À revoir' : '🟡 En cours';
+    return `<tr>
+      <td style="font-weight:700;font-family:'DM Mono',monospace">${escHtml(v.infinitief)}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--accent2)">${escHtml(v.ovt)}</td>
+      <td style="font-family:'DM Mono',monospace;color:#86efac">${escHtml(v.vtt)}</td>
+      <td style="font-size:12px;color:var(--muted)">${v.aux}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:13px;color:var(--muted)">${att}</td>
+      <td class="${cls}" style="font-family:'DM Mono',monospace;font-size:13px">${pct !== null ? pct+'%' : '—'}</td>
+      <td style="font-size:12px">${statusDot}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ── Reference list ── */
+function vbShowRef() {
+  ['vb-setup','vb-quiz','vb-summary','vb-progress-panel'].forEach(id =>
+    document.getElementById(id).style.display = 'none'
+  );
+  document.getElementById('vb-ref-panel').style.display    = 'block';
+  document.getElementById('vb-ref-link-row').style.display  = 'none';
+
+  document.getElementById('vb-ref-tbody').innerHTML = VB_VERBS.map(v => `
+    <tr>
+      <td style="font-weight:700;font-family:'DM Mono',monospace">${escHtml(v.infinitief)}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--accent2)">${escHtml(v.ovt)}</td>
+      <td style="font-family:'DM Mono',monospace;color:#86efac">${escHtml(v.vtt)}</td>
+      <td style="font-size:12px;color:var(--muted)">${v.aux}</td>
+      <td style="font-size:13px;color:var(--muted);font-style:italic">
+        ${escHtml(v.ex.ovt).replace('___', `<strong style="color:var(--accent2)">${escHtml(v.ovt)}</strong>`)}
+      </td>
+    </tr>`).join('');
+}
+
+function vbBackToSetup() {
+  ['vb-quiz','vb-summary','vb-progress-panel','vb-ref-panel'].forEach(id =>
+    document.getElementById(id).style.display = 'none'
+  );
+  document.getElementById('vb-setup').style.display        = 'block';
+  document.getElementById('vb-ref-link-row').style.display = 'block';
+  vbUpdateNote();
+}
+
+/* ── Controls ── */
+function vbUpdateNote() {
+  const forms  = vbFormFilter === 'all' ? 3 : 1;
+  const total  = VB_VERBS.length * forms;
+  const n      = vbCount === 'all' ? total : Math.min(vbCount, total);
+  document.getElementById('vb-avail-note').textContent = `${n} question${n > 1 ? 's' : ''} sur ${total} disponibles`;
+}
+
+document.querySelectorAll('#vb-count-pills .qz-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#vb-count-pills .qz-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    vbCount = btn.dataset.count === 'all' ? 'all' : +btn.dataset.count;
+    vbUpdateNote();
+  });
+});
+
+document.querySelectorAll('#vb-form-pills .qz-pill').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#vb-form-pills .qz-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    vbFormFilter = btn.dataset.form;
+    vbUpdateNote();
+  });
+});
+
+document.getElementById('vb-start-btn').addEventListener('click', () => {
+  vbAnswers = []; vbIndex = 0;
+  vbQueue = vbBuildQueue(vbCount, vbFormFilter);
+  document.getElementById('vb-setup').style.display         = 'none';
+  document.getElementById('vb-ref-link-row').style.display  = 'none';
+  document.getElementById('vb-quiz').style.display          = 'block';
+  vbShowQuestion();
+});
+
+document.getElementById('vb-check-btn').addEventListener('click', vbCheckText);
+document.getElementById('vb-answer-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    if (document.getElementById('vb-next-row').style.display !== 'none') vbAdvance();
+    else vbCheckText();
+  }
+});
+document.getElementById('vb-next-btn').addEventListener('click', vbAdvance);
+document.getElementById('vb-btn-restart').addEventListener('click', vbBackToSetup);
+document.getElementById('vb-btn-progress').addEventListener('click', vbShowProgress);
+document.getElementById('vb-back-setup').addEventListener('click', vbBackToSetup);
+document.getElementById('vb-show-ref').addEventListener('click', vbShowRef);
+document.getElementById('vb-ref-back').addEventListener('click', vbBackToSetup);
+
+/* ── Init ── */
+vbLoadProgress();
+vbUpdateNote();
 </script>
 </body>
 </html>

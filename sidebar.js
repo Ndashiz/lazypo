@@ -64,13 +64,6 @@
       desc: 'Build your EN/NL vocabulary with spaced repetition quizzes.'
     },
     {
-      id: 'verbes',
-      icon: '🔤',
-      label: 'Verbes NL',
-      url: 'verbes.html',
-      desc: 'Maîtrisez les verbes irréguliers néerlandais : infinitif, OVT et VTT.'
-    },
-    {
       id: 'focusfm',
       icon: '🎵',
       label: 'Focus FM',
