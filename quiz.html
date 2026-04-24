@@ -318,7 +318,7 @@ body { padding-left: 64px; }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
-  overflow: hidden;
+  overflow-x: auto;  /* horizontal scroll when too many columns */
 }
 .qz-table {
   width: 100%;
@@ -930,8 +930,11 @@ tr.row-selected { background: rgba(59,130,246,.05); }
 /* ── Tip column in vocab table ── */
 .tip-cell {
   font-size: 12.5px; color: var(--muted); font-style: italic;
-  max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* Constrain wide columns so Actions stays visible */
+.qz-table td.example { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qz-table td:last-child { white-space: nowrap; } /* Actions — never wrap */
 
 /* ── Excel import/export ── */
 .qz-excel-row {
@@ -1296,6 +1299,25 @@ tr.row-selected { background: rgba(59,130,246,.05); }
 <script src="auth.js"></script>
 <script src="focusfm.js"></script>
 <script src="session.js"></script>
+<script src="demo.js"></script>
+<script>
+window.loadDemoData = async function () {
+  if (!currentUser) return;
+  const demoWords = [
+    { source_word: 'resilience',   target_translation: 'résilience',       language_pair: 'EN→FR', example_sentence: 'Resilience is key to success.' },
+    { source_word: 'benchmark',    target_translation: 'référence / jalon', language_pair: 'EN→FR', example_sentence: 'This sets the benchmark.' },
+    { source_word: 'de fiets',     target_translation: 'vélo',              language_pair: 'nl-fr',  example_sentence: 'Ik ga op de fiets naar school.' },
+    { source_word: 'het weer',     target_translation: 'la météo / le temps', language_pair: 'nl-fr', example_sentence: 'Het weer is mooi vandaag.' },
+    { source_word: 'leverage',     target_translation: 'levier / tirer parti de', language_pair: 'EN→FR', example_sentence: 'We can leverage this opportunity.', tips: 'Penser à "levier" en français' },
+  ];
+  for (const w of demoWords) {
+    await window.sb.from('vocabulary').insert({ ...w, user_id: currentUser.id }).select();
+  }
+  await loadVocab();
+  renderVocab();
+  updateAvailNote();
+};
+</script>
 <script>
 /* ═══════════════════════════════════════════════════════════
    KNOWLEDGE QUIZ — Application Logic
