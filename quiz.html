@@ -2141,14 +2141,9 @@ function updateBulkBar() {
 async function bulkDelete() {
   const ids = [...selectedIds];
   if (!ids.length) return;
-  // Only delete non-system words
-  const toDelete = vocab.filter(w => ids.includes(w.id) && !w.is_system);
-  const systemCount = ids.length - toDelete.length;
-  if (!toDelete.length) { showToast('Les mots système ne peuvent pas être supprimés'); return; }
-  const msg = systemCount > 0
-    ? `Supprimer ${toDelete.length} mot(s) ? (${systemCount} mot(s) système ignoré(s))`
-    : `Supprimer ${toDelete.length} mot(s) sélectionné(s) ?`;
-  if (!confirm(msg)) return;
+  const toDelete = vocab.filter(w => ids.includes(w.id));
+  if (!toDelete.length) return;
+  if (!confirm(`Supprimer ${toDelete.length} mot(s) sélectionné(s) ?`)) return;
   const { error } = await window.sb.from('vocabulary')
     .delete()
     .in('id', toDelete.map(w => w.id))
@@ -2429,7 +2424,7 @@ function renderVocabRow(word) {
     <td class="ts-cell" title="${word.created_at ? new Date(word.created_at).toLocaleString() : ''}">${added}</td>
     <td>
       <button class="icon-btn btn-edit" data-id="${word.id}" title="Edit" aria-label="Edit word">✏️</button>
-      ${word.is_system ? '' : `<button class="icon-btn danger btn-delete" data-id="${word.id}" title="Delete" aria-label="Delete word">🗑️</button>`}
+      <button class="icon-btn danger btn-delete" data-id="${word.id}" title="Delete" aria-label="Delete word">🗑️</button>
     </td>
   </tr>`;
 }
@@ -2477,7 +2472,6 @@ function startEdit(id) {
   editingId = id;
   const word = vocab.find(w => w.id === id);
   if (!word) return;
-  if (word.is_system) { showToast('Les mots système ne peuvent pas être modifiés'); return; }
   const tbody = document.getElementById('vocab-tbody');
   const rows  = tbody.querySelectorAll('tr');
   rows.forEach(row => {
