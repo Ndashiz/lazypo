@@ -1841,10 +1841,11 @@ tr.row-selected { background: rgba(59,130,246,.05); }
         <table class="qz-table">
           <thead><tr>
             <th>Infinitif</th>
-            <th>OVT (prétérit)</th>
+            <th>Traduction</th>
+            <th>OVT sg.</th>
+            <th>OVT pl.</th>
             <th>VTT (participe)</th>
             <th>Aux.</th>
-            <th>Exemple OVT</th>
           </tr></thead>
           <tbody id="vb-ref-tbody"></tbody>
         </table>
@@ -3384,85 +3385,85 @@ function showToast(msg) {
 ═══════════════════════════════════════════════════════════ */
 
 const VB_VERBS = [
-  { id:'zijn',       infinitief:'zijn',       ovt:'was',       vtt:'geweest',    aux:'zijn',
+  { id:'zijn',       infinitief:'zijn',       ovt:'was',       ovt_pl:'waren',      vtt:'geweest',    aux:'zijn',      trad:'être',
     ex:{ infinitief:'Ik wil altijd eerlijk ___.', ovt:'Gisteren ___ het erg koud buiten.', vtt:'We zijn al twee keer in Parijs ___.' }},
-  { id:'hebben',     infinitief:'hebben',     ovt:'had',       vtt:'gehad',      aux:'hebben',
+  { id:'hebben',     infinitief:'hebben',     ovt:'had',       ovt_pl:'hadden',     vtt:'gehad',      aux:'hebben',    trad:'avoir',
     ex:{ infinitief:'Wil jij een kopje koffie ___?', ovt:'Ze ___ gisteren veel huiswerk.', vtt:'Hij heeft altijd veel vrienden ___.' }},
-  { id:'worden',     infinitief:'worden',     ovt:'werd',      vtt:'geworden',   aux:'zijn',
+  { id:'worden',     infinitief:'worden',     ovt:'werd',      ovt_pl:'werden',     vtt:'geworden',   aux:'zijn',      trad:'devenir',
     ex:{ infinitief:'Ik wil later leraar ___.', ovt:'Het ___ snel donker gisteren.', vtt:'Ze is snel bekend ___.' }},
-  { id:'gaan',       infinitief:'gaan',       ovt:'ging',      vtt:'gegaan',     aux:'zijn',
+  { id:'gaan',       infinitief:'gaan',       ovt:'ging',      ovt_pl:'gingen',     vtt:'gegaan',     aux:'zijn',      trad:'aller',
     ex:{ infinitief:'We willen morgen naar het strand ___.', ovt:'Mijn vader ___ vroeg naar zijn werk.', vtt:'Ze is al naar huis ___.' }},
-  { id:'komen',      infinitief:'komen',      ovt:'kwam',      vtt:'gekomen',    aux:'zijn',
+  { id:'komen',      infinitief:'komen',      ovt:'kwam',      ovt_pl:'kwamen',     vtt:'gekomen',    aux:'zijn',      trad:'venir',
     ex:{ infinitief:'Kun jij morgen ___?', ovt:'Hij ___ laat op het feestje.', vtt:'De trein is eindelijk ___.' }},
-  { id:'zien',       infinitief:'zien',       ovt:'zag',       vtt:'gezien',     aux:'hebben',
+  { id:'zien',       infinitief:'zien',       ovt:'zag',       ovt_pl:'zagen',      vtt:'gezien',     aux:'hebben',    trad:'voir',
     ex:{ infinitief:'Kan jij dat bord ___?', ovt:'Ik ___ haar gisteren in de supermarkt.', vtt:'Heb jij die film al ___?' }},
-  { id:'doen',       infinitief:'doen',       ovt:'deed',      vtt:'gedaan',     aux:'hebben',
+  { id:'doen',       infinitief:'doen',       ovt:'deed',      ovt_pl:'deden',      vtt:'gedaan',     aux:'hebben',    trad:'faire',
     ex:{ infinitief:'Wat wil je vandaag ___?', ovt:'Hij ___ zijn best op het examen.', vtt:'Ze heeft het werk al ___.' }},
-  { id:'schrijven',  infinitief:'schrijven',  ovt:'schreef',   vtt:'geschreven', aux:'hebben',
+  { id:'schrijven',  infinitief:'schrijven',  ovt:'schreef',   ovt_pl:'schreven',   vtt:'geschreven', aux:'hebben',    trad:'écrire',
     ex:{ infinitief:'Kun jij dit woord ___?', ovt:'Hij ___ een lange brief aan zijn moeder.', vtt:'Ze heeft een boek over reizen ___.' }},
-  { id:'rijden',     infinitief:'rijden',     ovt:'reed',      vtt:'gereden',    aux:'hebben',
+  { id:'rijden',     infinitief:'rijden',     ovt:'reed',      ovt_pl:'reden',      vtt:'gereden',    aux:'hebben',    trad:'conduire / rouler',
     ex:{ infinitief:'Ik ga morgen met de auto ___.', ovt:'Hij ___ gisteren naar Amsterdam.', vtt:'Ze heeft vijf uur lang ___.' }},
-  { id:'blijven',    infinitief:'blijven',    ovt:'bleef',     vtt:'gebleven',   aux:'zijn',
+  { id:'blijven',    infinitief:'blijven',    ovt:'bleef',     ovt_pl:'bleven',     vtt:'gebleven',   aux:'zijn',      trad:'rester',
     ex:{ infinitief:'Wil je vanavond ___?', ovt:'Ze ___ tot middernacht op het feest.', vtt:'Hij is de hele dag thuis ___.' }},
-  { id:'lopen',      infinitief:'lopen',      ovt:'liep',      vtt:'gelopen',    aux:'hebben',
+  { id:'lopen',      infinitief:'lopen',      ovt:'liep',      ovt_pl:'liepen',     vtt:'gelopen',    aux:'hebben',    trad:'marcher / courir',
     ex:{ infinitief:'We gaan elke ochtend ___.', ovt:'Ze ___ snel naar het station.', vtt:'We hebben tien kilometer ___.' }},
-  { id:'denken',     infinitief:'denken',     ovt:'dacht',     vtt:'gedacht',    aux:'hebben',
+  { id:'denken',     infinitief:'denken',     ovt:'dacht',     ovt_pl:'dachten',    vtt:'gedacht',    aux:'hebben',    trad:'penser',
     ex:{ infinitief:'Je moet goed ___ voor je antwoordt.', ovt:'Ik ___ dat hij ziek was.', vtt:'We hadden er nooit aan ___.' }},
-  { id:'brengen',    infinitief:'brengen',    ovt:'bracht',    vtt:'gebracht',   aux:'hebben',
+  { id:'brengen',    infinitief:'brengen',    ovt:'bracht',    ovt_pl:'brachten',   vtt:'gebracht',   aux:'hebben',    trad:'apporter / amener',
     ex:{ infinitief:'Kun jij de kinderen naar school ___?', ovt:'Hij ___ bloemen mee voor zijn moeder.', vtt:'Ze heeft de brief naar het postkantoor ___.' }},
-  { id:'vinden',     infinitief:'vinden',     ovt:'vond',      vtt:'gevonden',   aux:'hebben',
+  { id:'vinden',     infinitief:'vinden',     ovt:'vond',      ovt_pl:'vonden',     vtt:'gevonden',   aux:'hebben',    trad:'trouver',
     ex:{ infinitief:'Kun jij mijn sleutels ___?', ovt:'Ze ___ een portemonnee op straat.', vtt:'Hij heeft eindelijk een nieuwe baan ___.' }},
-  { id:'lezen',      infinitief:'lezen',      ovt:'las',       vtt:'gelezen',    aux:'hebben',
+  { id:'lezen',      infinitief:'lezen',      ovt:'las',       ovt_pl:'lazen',      vtt:'gelezen',    aux:'hebben',    trad:'lire',
     ex:{ infinitief:'Ik ga elke avond een boek ___.', ovt:'Ze ___ het boek in één dag.', vtt:'Heb jij dit artikel al ___?' }},
-  { id:'spreken',    infinitief:'spreken',    ovt:'sprak',     vtt:'gesproken',  aux:'hebben',
+  { id:'spreken',    infinitief:'spreken',    ovt:'sprak',     ovt_pl:'spraken',    vtt:'gesproken',  aux:'hebben',    trad:'parler',
     ex:{ infinitief:'Kun jij Nederlands ___?', ovt:'Hij ___ langzaam met de kinderen.', vtt:'Hebben jullie de directeur al ___?' }},
-  { id:'helpen',     infinitief:'helpen',     ovt:'hielp',     vtt:'geholpen',   aux:'hebben',
+  { id:'helpen',     infinitief:'helpen',     ovt:'hielp',     ovt_pl:'hielpen',    vtt:'geholpen',   aux:'hebben',    trad:'aider',
     ex:{ infinitief:'Kun jij me even ___?', ovt:'Ze ___ haar buurman met de boodschappen.', vtt:'De arts heeft veel patiënten ___.' }},
-  { id:'geven',      infinitief:'geven',      ovt:'gaf',       vtt:'gegeven',    aux:'hebben',
+  { id:'geven',      infinitief:'geven',      ovt:'gaf',       ovt_pl:'gaven',      vtt:'gegeven',    aux:'hebben',    trad:'donner',
     ex:{ infinitief:'Wil je mij je telefoonnummer ___?', ovt:'Ze ___ hem een cadeau voor zijn verjaardag.', vtt:'De leraar heeft ons veel huiswerk ___.' }},
-  { id:'nemen',      infinitief:'nemen',      ovt:'nam',       vtt:'genomen',    aux:'hebben',
+  { id:'nemen',      infinitief:'nemen',      ovt:'nam',       ovt_pl:'namen',      vtt:'genomen',    aux:'hebben',    trad:'prendre',
     ex:{ infinitief:'Wil je suiker ___ in je koffie?', ovt:'Hij ___ de trein naar Utrecht.', vtt:'Ze heeft de verkeerde weg ___.' }},
-  { id:'kopen',      infinitief:'kopen',      ovt:'kocht',     vtt:'gekocht',    aux:'hebben',
+  { id:'kopen',      infinitief:'kopen',      ovt:'kocht',     ovt_pl:'kochten',    vtt:'gekocht',    aux:'hebben',    trad:'acheter',
     ex:{ infinitief:'Ik ga morgen een fiets ___.', ovt:'Ze ___ een nieuw jasje in de winkel.', vtt:'Hij heeft een appartement in Amsterdam ___.' }},
-  { id:'beginnen',   infinitief:'beginnen',   ovt:'begon',     vtt:'begonnen',   aux:'zijn',
+  { id:'beginnen',   infinitief:'beginnen',   ovt:'begon',     ovt_pl:'begonnen',   vtt:'begonnen',   aux:'zijn',      trad:'commencer',
     ex:{ infinitief:'De les gaat om 9 uur ___.', ovt:'Het concert ___ later dan gepland.', vtt:'Ze is net met haar nieuwe baan ___.' }},
-  { id:'vergeten',   infinitief:'vergeten',   ovt:'vergat',    vtt:'vergeten',   aux:'hebben',
+  { id:'vergeten',   infinitief:'vergeten',   ovt:'vergat',    ovt_pl:'vergaten',   vtt:'vergeten',   aux:'hebben',    trad:'oublier',
     ex:{ infinitief:'Je mag dit nooit ___!', ovt:'Ze ___ haar tas in de trein.', vtt:'Ik heb zijn naam helemaal ___.' }},
-  { id:'houden',     infinitief:'houden',     ovt:'hield',     vtt:'gehouden',   aux:'hebben',
+  { id:'houden',     infinitief:'houden',     ovt:'hield',     ovt_pl:'hielden',    vtt:'gehouden',   aux:'hebben',    trad:'tenir / garder',
     ex:{ infinitief:'Je moet je aan de regels ___.', ovt:'Hij ___ zijn belofte.', vtt:'Ze heeft een mooie speech ___.' }},
-  { id:'laten',      infinitief:'laten',      ovt:'liet',      vtt:'gelaten',    aux:'hebben',
+  { id:'laten',      infinitief:'laten',      ovt:'liet',      ovt_pl:'lieten',     vtt:'gelaten',    aux:'hebben',    trad:'laisser / faire faire',
     ex:{ infinitief:'Moet je de deur open ___?', ovt:'Ze ___ haar kinderen lang buiten spelen.', vtt:'Hij heeft zijn auto in de garage ___.' }},
-  { id:'vallen',     infinitief:'vallen',     ovt:'viel',      vtt:'gevallen',   aux:'zijn',
+  { id:'vallen',     infinitief:'vallen',     ovt:'viel',      ovt_pl:'vielen',     vtt:'gevallen',   aux:'zijn',      trad:'tomber',
     ex:{ infinitief:'Pas op, je gaat ___!', ovt:'Hij ___ op het ijs en brak zijn pols.', vtt:'Het kind is van de fiets ___.' }},
-  { id:'slapen',     infinitief:'slapen',     ovt:'sliep',     vtt:'geslapen',   aux:'hebben',
+  { id:'slapen',     infinitief:'slapen',     ovt:'sliep',     ovt_pl:'sliepen',    vtt:'geslapen',   aux:'hebben',    trad:'dormir',
     ex:{ infinitief:'De baby wil ___.', ovt:'Ik ___ gisternacht heel slecht.', vtt:'Heb jij goed ___?' }},
-  { id:'stijgen',    infinitief:'stijgen',    ovt:'steeg',     vtt:'gestegen',   aux:'zijn',
+  { id:'stijgen',    infinitief:'stijgen',    ovt:'steeg',     ovt_pl:'stegen',     vtt:'gestegen',   aux:'zijn',      trad:'monter / augmenter',
     ex:{ infinitief:'De temperatuur gaat dit weekend ___.', ovt:'De prijs ___ vorig jaar met 10%.', vtt:'De pensioenen zijn dit jaar ___.' }},
-  { id:'kiezen',     infinitief:'kiezen',     ovt:'koos',      vtt:'gekozen',    aux:'hebben',
+  { id:'kiezen',     infinitief:'kiezen',     ovt:'koos',      ovt_pl:'kozen',      vtt:'gekozen',    aux:'hebben',    trad:'choisir',
     ex:{ infinitief:'Je mag zelf ___.', ovt:'Ze ___ de rode jurk voor het feest.', vtt:'De president is gisteren ___.' }},
-  { id:'vertrekken', infinitief:'vertrekken', ovt:'vertrok',   vtt:'vertrokken', aux:'zijn',
+  { id:'vertrekken', infinitief:'vertrekken', ovt:'vertrok',   ovt_pl:'vertrokken', vtt:'vertrokken', aux:'zijn',      trad:'partir',
     ex:{ infinitief:'We moeten om 8 uur ___.', ovt:'De trein ___ twee minuten te laat.', vtt:'Ze is vorig jaar naar Canada ___.' }},
-  { id:'staan',      infinitief:'staan',      ovt:'stond',     vtt:'gestaan',    aux:'hebben',
+  { id:'staan',      infinitief:'staan',      ovt:'stond',     ovt_pl:'stonden',    vtt:'gestaan',    aux:'hebben',    trad:'être debout',
     ex:{ infinitief:'Je moet hier ___!', ovt:'Ze ___ lang in de rij bij de kassa.', vtt:'Het standbeeld heeft daar altijd ___.' }},
-  { id:'zitten',     infinitief:'zitten',     ovt:'zat',       vtt:'gezeten',    aux:'hebben',
+  { id:'zitten',     infinitief:'zitten',     ovt:'zat',       ovt_pl:'zaten',      vtt:'gezeten',    aux:'hebben',    trad:'être assis',
     ex:{ infinitief:'Wil je hier naast mij ___?', ovt:'Hij ___ de hele avond op de bank.', vtt:'Ze heeft uren op het perron ___.' }},
-  { id:'liggen',     infinitief:'liggen',     ovt:'lag',       vtt:'gelegen',    aux:'hebben',
+  { id:'liggen',     infinitief:'liggen',     ovt:'lag',       ovt_pl:'lagen',      vtt:'gelegen',    aux:'hebben',    trad:'être couché / se trouver',
     ex:{ infinitief:'Ik wil even ___.', ovt:'Het boek ___ op de tafel.', vtt:'Ze heeft ziek in bed ___.' }},
-  { id:'snijden',    infinitief:'snijden',    ovt:'sneed',     vtt:'gesneden',   aux:'hebben',
+  { id:'snijden',    infinitief:'snijden',    ovt:'sneed',     ovt_pl:'sneden',     vtt:'gesneden',   aux:'hebben',    trad:'couper',
     ex:{ infinitief:'Kun jij het brood ___?', ovt:'Ze ___ de groenten voor de soep.', vtt:'Hij heeft zich in zijn vinger ___.' }},
-  { id:'weten',      infinitief:'weten',      ovt:'wist',      vtt:'geweten',    aux:'hebben',
+  { id:'weten',      infinitief:'weten',      ovt:'wist',      ovt_pl:'wisten',     vtt:'geweten',    aux:'hebben',    trad:'savoir',
     ex:{ infinitief:'Hoe kun je dat ___?', ovt:'Ik ___ niet wat ik moest zeggen.', vtt:'Dat had ik nooit ___.' }},
-  { id:'roepen',     infinitief:'roepen',     ovt:'riep',      vtt:'geroepen',   aux:'hebben',
+  { id:'roepen',     infinitief:'roepen',     ovt:'riep',      ovt_pl:'riepen',     vtt:'geroepen',   aux:'hebben',    trad:'appeler / crier',
     ex:{ infinitief:'Je mag niet zo hard ___.', ovt:'Ze ___ zijn naam over de straat.', vtt:'Ze heeft hem al ___.' }},
-  { id:'vliegen',    infinitief:'vliegen',    ovt:'vloog',     vtt:'gevlogen',   aux:'hebben',
+  { id:'vliegen',    infinitief:'vliegen',    ovt:'vloog',     ovt_pl:'vlogen',     vtt:'gevlogen',   aux:'hebben',    trad:'voler',
     ex:{ infinitief:'Vogels kunnen ___.', ovt:'Het vliegtuig ___ over de stad.', vtt:'We hebben drie uur lang ___.' }},
-  { id:'zwemmen',    infinitief:'zwemmen',    ovt:'zwom',      vtt:'gezwommen',  aux:'hebben',
+  { id:'zwemmen',    infinitief:'zwemmen',    ovt:'zwom',      ovt_pl:'zwommen',    vtt:'gezwommen',  aux:'hebben',    trad:'nager',
     ex:{ infinitief:'Hij kan goed ___.', ovt:'Ze ___ elke ochtend een kilometer.', vtt:'We hebben vandaag ___.' }},
-  { id:'dragen',     infinitief:'dragen',     ovt:'droeg',     vtt:'gedragen',   aux:'hebben',
+  { id:'dragen',     infinitief:'dragen',     ovt:'droeg',     ovt_pl:'droegen',    vtt:'gedragen',   aux:'hebben',    trad:'porter',
     ex:{ infinitief:'Wil je dit pakket ___?', ovt:'Hij ___ een zware rugzak op zijn rug.', vtt:'Ze heeft altijd mooie kleren ___.' }},
-  { id:'vragen',     infinitief:'vragen',     ovt:'vroeg',     vtt:'gevraagd',   aux:'hebben',
+  { id:'vragen',     infinitief:'vragen',     ovt:'vroeg',     ovt_pl:'vroegen',    vtt:'gevraagd',   aux:'hebben',    trad:'demander',
     ex:{ infinitief:'Ik wil je iets ___.', ovt:'Ze ___ hem om hulp.', vtt:'Heb jij hem al om toestemming ___?' }},
-  { id:'schieten',   infinitief:'schieten',   ovt:'schoot',    vtt:'geschoten',  aux:'hebben',
+  { id:'schieten',   infinitief:'schieten',   ovt:'schoot',    ovt_pl:'schoten',    vtt:'geschoten',  aux:'hebben',    trad:'tirer',
     ex:{ infinitief:'Je mag hier niet ___.', ovt:'De speler ___ de bal in het doel.', vtt:'Hij heeft drie keer ___.' }},
 ];
 
@@ -3614,7 +3615,9 @@ function vbShowFeedback(isOk, given, correct) {
     <div class="vb-pcell">
       <div class="vb-pcell-lbl">${VB_FORM_LABELS[f]}</div>
       <div class="vb-pcell-val${f === q.form ? ' hi' : ''}">${escHtml(q.verb[f])}</div>
-      ${f === 'vtt' ? `<div class="vb-pcell-aux">${q.verb.aux}</div>` : ''}
+      ${f === 'ovt' ? `<div class="vb-pcell-aux">pl. ${escHtml(q.verb.ovt_pl)}</div>` : ''}
+      ${f === 'vtt' ? `<div class="vb-pcell-aux">${q.verb.aux} + …</div>` : ''}
+      ${f === 'infinitief' ? `<div class="vb-pcell-aux" style="font-style:italic;color:var(--accent)">${escHtml(q.verb.trad)}</div>` : ''}
     </div>`).join('');
 
   document.getElementById('vb-sentence-reveal').innerHTML =
@@ -3703,8 +3706,8 @@ function vbShowProgress() {
       : pct >= 80 && att >= 3 ? '🟢 Maîtrisé'
       : pct < 50 ? '🔴 À revoir' : '🟡 En cours';
     return `<tr>
-      <td style="font-weight:700;font-family:'DM Mono',monospace">${escHtml(v.infinitief)}</td>
-      <td style="font-family:'DM Mono',monospace;color:var(--accent2)">${escHtml(v.ovt)}</td>
+      <td style="font-weight:700;font-family:'DM Mono',monospace">${escHtml(v.infinitief)}<br><span style="font-size:11px;color:var(--accent);font-family:inherit;font-weight:400;font-style:italic">${escHtml(v.trad)}</span></td>
+      <td style="font-family:'DM Mono',monospace;color:var(--accent2)">${escHtml(v.ovt)}<br><span style="font-size:11px;color:var(--muted)">${escHtml(v.ovt_pl)}</span></td>
       <td style="font-family:'DM Mono',monospace;color:#86efac">${escHtml(v.vtt)}</td>
       <td style="font-size:12px;color:var(--muted)">${v.aux}</td>
       <td style="font-family:'DM Mono',monospace;font-size:13px;color:var(--muted)">${att}</td>
@@ -3725,12 +3728,11 @@ function vbShowRef() {
   document.getElementById('vb-ref-tbody').innerHTML = VB_VERBS.map(v => `
     <tr>
       <td style="font-weight:700;font-family:'DM Mono',monospace">${escHtml(v.infinitief)}</td>
+      <td style="font-size:12px;color:var(--accent);font-style:italic">${escHtml(v.trad)}</td>
       <td style="font-family:'DM Mono',monospace;color:var(--accent2)">${escHtml(v.ovt)}</td>
+      <td style="font-family:'DM Mono',monospace;color:var(--muted)">${escHtml(v.ovt_pl)}</td>
       <td style="font-family:'DM Mono',monospace;color:#86efac">${escHtml(v.vtt)}</td>
       <td style="font-size:12px;color:var(--muted)">${v.aux}</td>
-      <td style="font-size:13px;color:var(--muted);font-style:italic">
-        ${escHtml(v.ex.ovt).replace('___', `<strong style="color:var(--accent2)">${escHtml(v.ovt)}</strong>`)}
-      </td>
     </tr>`).join('');
 }
 
