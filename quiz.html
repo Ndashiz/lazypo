@@ -1959,12 +1959,17 @@ async function addWord(obj) {
 }
 
 async function updateWord(id, obj) {
-  const { error } = await window.sb
+  const { data, error } = await window.sb
     .from('vocabulary')
     .update({ ...obj, updated_at: new Date().toISOString() })
     .eq('id', id)
-    .eq('user_id', currentUser.id);
-  if (error) { showToast('Error updating word'); return; }
+    .eq('user_id', currentUser.id)
+    .select('id');
+  if (error) { showToast('Erreur : ' + (error.message || 'update failed')); return; }
+  if (!data || data.length === 0) {
+    showToast('Modification bloquée — vérifie les RLS policies Supabase');
+    return;
+  }
   await loadVocab();
   renderVocab();
   showToast('Word updated');
