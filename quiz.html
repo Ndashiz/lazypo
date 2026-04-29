@@ -1249,7 +1249,43 @@ tr.row-selected { background: rgba(59,130,246,.05); }
   background: rgba(59,130,246,.07); border-color: rgba(96,165,250,.22); color: #60a5fa;
 }
 .btn-excel.import:hover { background: rgba(59,130,246,.16); }
+.btn-excel.print {
+  background: rgba(168,85,247,.07); border-color: rgba(168,85,247,.22); color: #c084fc;
+}
+.btn-excel.print:hover { background: rgba(168,85,247,.16); }
 #xlsx-file-input { display: none; }
+
+/* Row highlighting for failed / weak words */
+.qz-table tr.row-failed td { background: rgba(239,68,68,.06); }
+.qz-table tr.row-failed:hover td { background: rgba(239,68,68,.11); }
+.qz-table tr.row-failed td:last-child { background: rgba(239,68,68,.06); }
+.qz-table tr.row-failed:hover td:last-child { background: rgba(239,68,68,.11); }
+.qz-table tr.row-weak td { background: rgba(234,179,8,.05); }
+.qz-table tr.row-weak:hover td { background: rgba(234,179,8,.09); }
+.fail-dot { display:inline-block; width:7px; height:7px; border-radius:50%;
+  background:var(--danger); margin-left:6px; vertical-align:middle; flex-shrink:0; }
+.weak-dot { display:inline-block; width:7px; height:7px; border-radius:50%;
+  background:var(--warning); margin-left:6px; vertical-align:middle; flex-shrink:0; }
+
+/* Print styles */
+@media print {
+  body * { visibility: hidden; }
+  #print-area, #print-area * { visibility: visible; }
+  #print-area { position: fixed; inset: 0; background: white; color: black;
+    font-family: sans-serif; font-size: 12px; padding: 24px; }
+  #print-area h2 { font-size: 16px; margin-bottom: 4px; }
+  #print-area .print-subtitle { font-size: 11px; color: #666; margin-bottom: 16px; }
+  #print-area table { width: 100%; border-collapse: collapse; }
+  #print-area th { background: #f0f0f0; font-weight: 700; padding: 6px 8px;
+    border: 1px solid #ccc; text-align: left; font-size: 11px; }
+  #print-area td { padding: 5px 8px; border: 1px solid #ddd; vertical-align: top; }
+  #print-area tr.pr-failed td { background: #fff0f0; }
+  #print-area tr.pr-weak   td { background: #fffbe6; }
+  #print-area .pr-rate-fail { color: #dc2626; font-weight: 700; }
+  #print-area .pr-rate-weak { color: #ca8a04; font-weight: 700; }
+  #print-area .pr-rate-ok   { color: #16a34a; }
+  #print-area .pr-rate-none { color: #999; }
+}
 .excel-hint {
   font-size: 11.5px; color: var(--muted); font-family: 'DM Mono', monospace;
 }
@@ -1340,6 +1376,11 @@ tr.row-selected { background: rgba(59,130,246,.05); }
         <button class="qz-pill"        data-source-filter="user">👤 Mes mots</button>
         <button class="qz-pill"        data-source-filter="system">🤖 Système</button>
       </div>
+      <div class="qz-pill-group" role="group" aria-label="Performance filter">
+        <button class="qz-pill active" data-perf-filter="all">Tous niveaux</button>
+        <button class="qz-pill"        data-perf-filter="failed">❌ Ratés</button>
+        <button class="qz-pill"        data-perf-filter="weak">⚠️ Fragiles</button>
+      </div>
       <select id="vocab-sort" class="qz-sort-select" aria-label="Sort vocabulary">
         <option value="newest">Newest first</option>
         <option value="oldest">Oldest first</option>
@@ -1349,10 +1390,11 @@ tr.row-selected { background: rgba(59,130,246,.05); }
       <span class="qz-word-count" id="word-count">0 words</span>
     </div>
 
-    <!-- Excel export / import -->
+    <!-- Excel export / import / print -->
     <div class="qz-excel-row">
       <button class="btn-excel export" id="btn-export-xl">📥 Exporter Excel</button>
       <button class="btn-excel import" id="btn-import-xl">📤 Importer Excel</button>
+      <button class="btn-excel print"  id="btn-print-vocab">🖨️ Imprimer</button>
       <input type="file" id="xlsx-file-input" accept=".xlsx,.xls,.csv">
       <span class="excel-hint">L'export inclut le scoring SM-2 · L'import met à jour mots &amp; scores</span>
     </div>
@@ -2239,6 +2281,7 @@ async function recordAnswer(wordId, isCorrect) {
 let selectedLang    = 'EN→FR';
 let filterLang      = 'all';
 let sourceFilter    = 'all';   // 'all' | 'user' | 'system'
+let perfFilter      = 'all';   // 'all' | 'failed' | 'weak'
 let systemFilter    = 'include'; // 'include' | 'exclude' | 'only'  (quiz)
 let searchQuery     = '';
 let sortMode        = 'newest';
@@ -2279,10 +2322,60 @@ document.querySelectorAll('[data-source-filter]').forEach(btn => {
   });
 });
 
+/* Perf filter */
+document.querySelectorAll('[data-perf-filter]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('[data-perf-filter]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    perfFilter = btn.dataset.perfFilter;
+    renderVocab();
+  });
+});
+
 /* Sort */
 document.getElementById('vocab-sort').addEventListener('change', e => {
   sortMode = e.target.value;
   renderVocab();
+});
+
+/* Print */
+document.getElementById('btn-print-vocab').addEventListener('click', () => {
+  const list = getFilteredVocab();
+  const filterLabel = perfFilter === 'failed' ? ' — ❌ Mots ratés'
+    : perfFilter === 'weak' ? ' — ⚠️ Mots fragiles' : '';
+  const langLabel = filterLang !== 'all' ? ` · ${filterLang}` : '';
+  const now = new Date().toLocaleDateString('fr-FR', { day:'2-digit', month:'long', year:'numeric' });
+
+  const rows = list.map(w => {
+    const p  = progress[w.id];
+    const r  = rateOf(w.id);
+    const pct = r < 0 ? '—' : Math.round(r * 100) + '%';
+    const rateCls = r < 0 ? 'pr-rate-none' : r < 0.5 ? 'pr-rate-fail' : r < 0.75 ? 'pr-rate-weak' : 'pr-rate-ok';
+    const rowCls  = r >= 0 && r < 0.5 ? 'pr-failed' : r >= 0.5 && r < 0.75 ? 'pr-weak' : '';
+    const att = p?.attempts ?? '—';
+    return `<tr class="${rowCls}">
+      <td>${escHtml(w.source_word)}</td>
+      <td>${escHtml(w.target_translation)}</td>
+      <td>${escHtml(w.language_pair)}</td>
+      <td>${escHtml(w.example_sentence || '—')}</td>
+      <td class="${rateCls}">${pct}${att !== '—' ? ` (${att} tentatives)` : ''}</td>
+    </tr>`;
+  }).join('');
+
+  let area = document.getElementById('print-area');
+  if (area) area.remove();
+  area = document.createElement('div');
+  area.id = 'print-area';
+  area.innerHTML = `
+    <h2>📚 Vocabulaire LazyPO${filterLabel}${langLabel}</h2>
+    <div class="print-subtitle">${list.length} mot${list.length !== 1 ? 's' : ''} · Imprimé le ${now}</div>
+    <table>
+      <thead><tr><th>Mot</th><th>Traduction</th><th>Langue</th><th>Exemple</th><th>Taux de réussite</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  document.body.appendChild(area);
+  window.print();
+  setTimeout(() => area.remove(), 1000);
 });
 
 // Select-all checkbox
@@ -2347,6 +2440,8 @@ function getFilteredVocab() {
   if (filterLang !== 'all')   list = list.filter(w => w.language_pair === filterLang);
   if (sourceFilter === 'user')   list = list.filter(w => !w.is_system);
   if (sourceFilter === 'system') list = list.filter(w =>  w.is_system);
+  if (perfFilter === 'failed') list = list.filter(w => { const r = rateOf(w.id); return r >= 0 && r < 0.5; });
+  if (perfFilter === 'weak')   list = list.filter(w => { const r = rateOf(w.id); return r >= 0 && r < 0.75; });
   if (searchQuery) list = list.filter(w =>
     w.source_word.toLowerCase().includes(searchQuery) ||
     w.target_translation.toLowerCase().includes(searchQuery)
@@ -2417,9 +2512,15 @@ function renderVocabRow(word) {
 
   const tipDisplay = word.tips ? `<span title="${escHtml(word.tips)}">${escHtml(word.tips.length > 30 ? word.tips.slice(0,30) + '…' : word.tips)}</span>` : '<span style="opacity:.3">—</span>';
 
-  return `<tr data-id="${word.id}"${selClass ? ` class="${selClass.trim()}"` : ''}>
+  const r = rateOf(word.id);
+  const perfClass = r >= 0 && r < 0.5 ? ' row-failed' : r >= 0.5 && r < 0.75 ? ' row-weak' : '';
+  const perfDot   = r >= 0 && r < 0.5 ? '<span class="fail-dot" title="Raté (< 50%)"></span>'
+                  : r >= 0.5 && r < 0.75 ? '<span class="weak-dot" title="Fragile (< 75%)"></span>' : '';
+  const rowClass = [selClass.trim(), perfClass.trim()].filter(Boolean).join(' ');
+
+  return `<tr data-id="${word.id}"${rowClass ? ` class="${rowClass}"` : ''}>
     <td class="qz-cb-cell"><input type="checkbox" class="qz-cb row-cb" data-id="${word.id}" ${checked} aria-label="Sélectionner"></td>
-    <td class="source-word">${escHtml(word.source_word)}</td>
+    <td class="source-word">${escHtml(word.source_word)}${perfDot}</td>
     <td>${escHtml(word.target_translation)}</td>
     <td><span class="lang-badge ${langClass}">${word.language_pair}</span></td>
     <td class="example" title="${escHtml(word.example_sentence || '')}">${ex}</td>
