@@ -1290,6 +1290,67 @@ tr.row-selected { background: rgba(59,130,246,.05); }
   font-size: 11.5px; color: var(--muted); font-family: 'DM Mono', monospace;
 }
 
+/* ── Multi tab ── */
+.multi-subnav {
+  display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.multi-subnav-btn {
+  padding: 7px 16px; border-radius: 20px; border: 1px solid var(--border);
+  background: transparent; color: var(--muted); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: all .15s; font-family: 'DM Sans', sans-serif;
+}
+.multi-subnav-btn:hover { color: var(--text); border-color: var(--accent); }
+.multi-subnav-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.multi-sub { display: none; }
+.multi-sub.active { display: block; }
+
+/* Feed items */
+.feed-item {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px 16px; margin-bottom: 10px;
+}
+.feed-item-header {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.feed-name { font-weight: 700; font-size: 14px; }
+.feed-score-badge {
+  background: var(--surface2); border-radius: 6px; padding: 2px 10px;
+  font-family: 'DM Mono', monospace; font-size: 13px; color: var(--text);
+}
+.feed-score-badge.good { background: rgba(34,197,94,.12); color: #4ade80; }
+.feed-score-badge.mid  { background: rgba(234,179,8,.12);  color: #fbbf24; }
+.feed-score-badge.bad  { background: rgba(239,68,68,.12);  color: #f87171; }
+.feed-meta { font-size: 12px; color: var(--muted); margin-left: auto; }
+.feed-comment-toggle {
+  background: transparent; border: 1px solid var(--border); border-radius: 20px;
+  color: var(--muted); font-size: 12px; padding: 3px 10px; cursor: pointer;
+  transition: all .15s;
+}
+.feed-comment-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.feed-comments { margin-top: 12px; border-top: 1px solid var(--border); padding-top: 10px; }
+.feed-comment-item {
+  display: flex; gap: 8px; margin-bottom: 8px; font-size: 13px;
+}
+.feed-comment-author { font-weight: 600; color: var(--accent); white-space: nowrap; }
+.feed-comment-text   { color: var(--text); }
+.feed-comment-time   { font-size: 11px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+.feed-comment-form   { display: flex; gap: 8px; margin-top: 8px; }
+.feed-comment-form .qz-input { flex: 1; padding: 6px 10px; font-size: 13px; }
+.feed-empty { text-align:center; color: var(--muted); padding: 40px 0; font-size: 14px; }
+
+/* My stats vs global */
+.multi-vs-wrap { margin-top: 20px; }
+.multi-vs-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.multi-vs-row { margin-bottom: 14px; }
+.multi-vs-label { font-size: 13px; color: var(--muted); margin-bottom: 4px; display: flex; justify-content: space-between; }
+.multi-vs-label span { font-weight: 600; color: var(--text); }
+.multi-bar-wrap { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; display: flex; gap: 2px; }
+.multi-bar-me   { height: 100%; background: var(--accent); border-radius: 4px; transition: width .6s; }
+.multi-bar-avg  { height: 100%; background: var(--muted); border-radius: 4px; opacity: .5; transition: width .6s; }
+
+/* Leaderboard — me row */
+.lb-me td { background: rgba(59,130,246,.08); font-weight: 600; }
+
 /* ── Responsive ── */
 @media (max-width: 640px) {
   body { padding-left: 0; }
@@ -1322,6 +1383,7 @@ tr.row-selected { background: rgba(59,130,246,.05); }
       <button class="qz-tab"        data-tab="quiz"     role="tab" aria-selected="false">🎯 Quiz</button>
       <button class="qz-tab"        data-tab="progress" role="tab" aria-selected="false">📊 Progress</button>
       <button class="qz-tab"        data-tab="verbes"   role="tab" aria-selected="false">🔤 Verbes NL</button>
+      <button class="qz-tab"        data-tab="multi"    role="tab" aria-selected="false">👥 Multi</button>
     </div>
   </div>
 
@@ -1901,6 +1963,46 @@ tr.row-selected { background: rgba(59,130,246,.05); }
       <button class="btn-secondary" id="vb-show-ref" style="font-size:13px;padding:8px 18px;">
         📋 Voir la liste complète des verbes
       </button>
+    </div>
+
+  </section>
+
+  <!-- ═══════════════════════════════════════════
+       VIEW: MULTI
+  ═══════════════════════════════════════════ -->
+  <section class="qz-view" id="view-multi" role="tabpanel">
+
+    <!-- Sub-nav -->
+    <div class="multi-subnav">
+      <button class="multi-subnav-btn active" data-sub="classement">🏆 Classement</button>
+      <button class="multi-subnav-btn"        data-sub="feed">📰 Feed</button>
+      <button class="multi-subnav-btn"        data-sub="mystats">📈 Mes stats</button>
+    </div>
+
+    <!-- Classement -->
+    <div class="multi-sub active" id="multi-sub-classement">
+      <div class="qz-table-wrap">
+        <table class="qz-table" id="lb-table">
+          <thead><tr>
+            <th>#</th><th>Joueur</th><th>Moy. %</th><th>Parties</th><th>Meilleur</th>
+          </tr></thead>
+          <tbody id="lb-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Feed -->
+    <div class="multi-sub" id="multi-sub-feed">
+      <div id="feed-list"></div>
+      <div style="text-align:center;margin-top:12px;">
+        <button class="btn-secondary" id="feed-load-more" style="display:none;font-size:13px;padding:8px 20px;">Charger plus</button>
+      </div>
+    </div>
+
+    <!-- Mes stats -->
+    <div class="multi-sub" id="multi-sub-mystats">
+      <div class="qz-gamestats-row" id="ms-cards"></div>
+      <div class="multi-vs-wrap" id="ms-vs"></div>
     </div>
 
   </section>
@@ -3049,6 +3151,7 @@ function endSession() {
   const total   = sessionAnswers.length;
   const correct = sessionAnswers.filter(a => a.correct).length;
   saveQuizSession(total, correct, durationSec);
+  postMultiSession(correct, total, durationSec, 'vocab', quizFilter || 'all');
 
   const wrong = sessionAnswers.filter(a => !a.correct && !a.skipped);
   if (wrong.length > 0) {
@@ -3336,6 +3439,9 @@ function switchTab(tabId) {
   }
   if (tabId === 'verbes') {
     vbUpdateNote();
+  }
+  if (tabId === 'multi') {
+    multiInit();
   }
 }
 
@@ -3746,6 +3852,7 @@ function vbShowSummary() {
   const total   = vbAnswers.length;
   const correct = vbAnswers.filter(a => a.correct).length;
   const pct     = total > 0 ? Math.round((correct / total) * 100) : 0;
+  postMultiSession(correct, total, 0, 'verbes', vbFormFilter || 'all');
 
   document.getElementById('vb-score-big').textContent  = `${correct} / ${total}`;
   document.getElementById('vb-score-sub').textContent  = pct + '%';
@@ -3897,6 +4004,276 @@ document.getElementById('vb-ref-back').addEventListener('click', vbBackToSetup);
 /* ── Init ── */
 vbLoadProgress();
 vbUpdateNote();
+
+/* ═══════════════════════════════════════════════════════════
+   MODULE MULTI — score sharing, leaderboard, feed, comments
+═══════════════════════════════════════════════════════════ */
+
+/* ── State ── */
+let multiLoaded    = false;
+let multiLoadedAt  = 0;
+let feedOffset     = 0;
+let feedData       = [];
+let lbData         = [];
+let multiDisplayName = null;
+
+const MULTI_CACHE_TTL = 2 * 60 * 1000; // 2 min
+
+/* ── Display name helper ── */
+async function getMultiDisplayName() {
+  if (multiDisplayName) return multiDisplayName;
+  if (!currentUser) return null;
+  try {
+    const { data } = await window.sb.from('profiles').select('username').eq('id', currentUser.id).single();
+    multiDisplayName = data?.username || currentUser.email?.split('@')[0] || 'Joueur';
+  } catch { multiDisplayName = currentUser.email?.split('@')[0] || 'Joueur'; }
+  return multiDisplayName;
+}
+
+/* ── Auto-post session after each quiz ── */
+async function postMultiSession(score, total, durationSec, mode, lang) {
+  if (!currentUser || !window.sb) return;
+  const name = await getMultiDisplayName();
+  try {
+    await window.sb.from('quiz_sessions').insert({
+      user_id: currentUser.id,
+      display_name: name,
+      score, total, duration_sec: durationSec, mode, lang
+    });
+    multiLoaded = false; // invalidate cache so next visit refreshes
+  } catch(e) { console.warn('postMultiSession:', e.message); }
+}
+
+/* ── Init (called when tab is opened) ── */
+async function multiInit() {
+  if (multiLoaded && Date.now() - multiLoadedAt < MULTI_CACHE_TTL) return;
+  await getMultiDisplayName();
+  await Promise.all([multiLoadLeaderboard(), multiLoadFeed(true)]);
+  multiLoadMyStats();
+  multiLoaded  = true;
+  multiLoadedAt = Date.now();
+}
+
+/* ── Sub-nav ── */
+document.querySelectorAll('.multi-subnav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.multi-subnav-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const sub = btn.dataset.sub;
+    document.querySelectorAll('.multi-sub').forEach(el => el.classList.remove('active'));
+    document.getElementById('multi-sub-' + sub).classList.add('active');
+  });
+});
+
+/* ─────────────────────────────────
+   LEADERBOARD
+───────────────────────────────── */
+async function multiLoadLeaderboard() {
+  const { data, error } = await window.sb
+    .from('quiz_sessions')
+    .select('user_id, display_name, score, total')
+    .order('created_at', { ascending: false })
+    .limit(500);
+  if (error) return;
+  lbData = aggregateLeaderboard(data || []);
+  renderLeaderboard(lbData);
+}
+
+function aggregateLeaderboard(sessions) {
+  const map = {};
+  for (const s of sessions) {
+    if (!map[s.user_id]) map[s.user_id] = { user_id: s.user_id, display_name: s.display_name, games: 0, totalScore: 0, totalPossible: 0, best: 0 };
+    const m = map[s.user_id];
+    m.games++;
+    m.totalScore    += s.score;
+    m.totalPossible += s.total;
+    if (s.total > 0) m.best = Math.max(m.best, Math.round((s.score / s.total) * 100));
+  }
+  return Object.values(map)
+    .map(m => ({ ...m, avg: m.totalPossible > 0 ? Math.round((m.totalScore / m.totalPossible) * 100) : 0 }))
+    .sort((a, b) => b.avg - a.avg || b.games - a.games);
+}
+
+function renderLeaderboard(rows) {
+  const tbody = document.getElementById('lb-body');
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="5"><div class="feed-empty">Aucune partie enregistrée.<br><small>Joue un quiz pour apparaître ici !</small></div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map((r, i) => {
+    const isMe = currentUser && r.user_id === currentUser.id;
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1;
+    const avgCls = r.avg >= 75 ? 'rate-good' : r.avg >= 50 ? 'rate-mid' : 'rate-bad';
+    return `<tr${isMe ? ' class="lb-me"' : ''}>
+      <td style="font-size:16px;text-align:center">${medal}</td>
+      <td style="font-weight:600">${escHtml(r.display_name)}${isMe ? ' <span style="font-size:11px;color:var(--accent)">(moi)</span>' : ''}</td>
+      <td class="${avgCls}">${r.avg}%</td>
+      <td style="color:var(--muted)">${r.games}</td>
+      <td style="color:var(--success)">${r.best}%</td>
+    </tr>`;
+  }).join('');
+}
+
+/* ─────────────────────────────────
+   FEED
+───────────────────────────────── */
+async function multiLoadFeed(reset = false) {
+  if (reset) { feedOffset = 0; feedData = []; }
+  const { data, error } = await window.sb
+    .from('quiz_sessions')
+    .select('*, quiz_session_comments(count)')
+    .order('created_at', { ascending: false })
+    .range(feedOffset, feedOffset + 19);
+  if (error) return;
+  const rows = data || [];
+  feedData = reset ? rows : [...feedData, ...rows];
+  feedOffset += rows.length;
+  renderFeed(rows, !reset);
+  document.getElementById('feed-load-more').style.display = rows.length === 20 ? 'inline-flex' : 'none';
+}
+
+function renderFeed(sessions, append) {
+  const list = document.getElementById('feed-list');
+  if (!append && !sessions.length) {
+    list.innerHTML = `<div class="feed-empty">Aucune activité encore.<br><small>Joue un quiz pour que tes résultats apparaissent ici !</small></div>`;
+    return;
+  }
+  const html = sessions.map(s => buildFeedItem(s)).join('');
+  if (append) list.insertAdjacentHTML('beforeend', html);
+  else        list.innerHTML = html;
+  // Attach comment toggle listeners
+  list.querySelectorAll('.feed-comment-toggle').forEach(btn => {
+    if (!btn.dataset.bound) {
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', () => toggleComments(btn.dataset.sid, btn.closest('.feed-item')));
+    }
+  });
+  list.querySelectorAll('.feed-comment-submit').forEach(btn => {
+    if (!btn.dataset.bound) {
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', () => submitComment(btn.dataset.sid, btn.closest('.feed-comments')));
+    }
+  });
+}
+
+function buildFeedItem(s) {
+  const pct    = s.total > 0 ? Math.round((s.score / s.total) * 100) : 0;
+  const bdgCls = pct >= 75 ? 'good' : pct >= 50 ? 'mid' : 'bad';
+  const modeLabel = s.mode === 'verbes' ? '🔤 Verbes NL' : '📚 Vocab';
+  const count  = s.quiz_session_comments?.[0]?.count ?? 0;
+  const timeAgoStr = timeAgo(s.created_at);
+  return `<div class="feed-item" data-sid="${s.id}">
+    <div class="feed-item-header">
+      <span class="feed-name">${escHtml(s.display_name)}</span>
+      <span class="feed-score-badge ${bdgCls}">${s.score}/${s.total} · ${pct}%</span>
+      <span style="font-size:12px;color:var(--muted)">${modeLabel}</span>
+      <span class="feed-meta">${timeAgoStr}</span>
+      <button class="feed-comment-toggle" data-sid="${s.id}" data-bound="">💬 ${count > 0 ? count : ''}</button>
+    </div>
+    <div class="feed-comments" style="display:none;" data-sid="${s.id}" data-loaded="">
+      <div class="feed-comment-list"></div>
+      <div class="feed-comment-form">
+        <input type="text" class="qz-input feed-comment-input" placeholder="Ajouter un commentaire…" maxlength="200">
+        <button class="btn-primary feed-comment-submit" data-sid="${s.id}" style="padding:6px 14px;font-size:13px;" data-bound="">Envoyer</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function toggleComments(sid, itemEl) {
+  const commentsEl = itemEl.querySelector('.feed-comments');
+  const isOpen     = commentsEl.style.display !== 'none';
+  commentsEl.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen && !commentsEl.dataset.loaded) {
+    commentsEl.dataset.loaded = '1';
+    const { data } = await window.sb
+      .from('quiz_session_comments')
+      .select('*').eq('session_id', sid).order('created_at');
+    renderComments(sid, data || [], itemEl);
+  }
+}
+
+function renderComments(sid, comments, itemEl) {
+  const list = itemEl.querySelector('.feed-comment-list');
+  list.innerHTML = comments.map(c => `
+    <div class="feed-comment-item">
+      <span class="feed-comment-author">${escHtml(c.display_name)}</span>
+      <span class="feed-comment-text">${escHtml(c.content)}</span>
+      <span class="feed-comment-time">${timeAgo(c.created_at)}</span>
+    </div>`).join('') || '<div style="font-size:12px;color:var(--muted);padding:4px 0">Aucun commentaire.</div>';
+}
+
+async function submitComment(sid, commentsEl) {
+  const input = commentsEl.querySelector('.feed-comment-input');
+  const content = input.value.trim();
+  if (!content || !currentUser) return;
+  const name = await getMultiDisplayName();
+  const { data, error } = await window.sb.from('quiz_session_comments').insert({
+    session_id: sid, user_id: currentUser.id, display_name: name, content
+  }).select().single();
+  if (error) { showToast('Erreur lors de l\'envoi'); return; }
+  input.value = '';
+  // Append comment without refetch
+  const list = commentsEl.querySelector('.feed-comment-list');
+  const frag = document.createElement('div');
+  frag.className = 'feed-comment-item';
+  frag.innerHTML = `<span class="feed-comment-author">${escHtml(name)}</span><span class="feed-comment-text">${escHtml(content)}</span><span class="feed-comment-time">À l'instant</span>`;
+  list.appendChild(frag);
+  // Update badge count
+  const toggle = document.querySelector(`.feed-comment-toggle[data-sid="${sid}"]`);
+  if (toggle) {
+    const cur = parseInt(toggle.textContent.replace('💬','').trim()) || 0;
+    toggle.textContent = `💬 ${cur + 1}`;
+  }
+}
+
+document.getElementById('feed-load-more').addEventListener('click', () => multiLoadFeed(false));
+
+/* ─────────────────────────────────
+   MES STATS vs GLOBAL
+───────────────────────────────── */
+function multiLoadMyStats() {
+  if (!currentUser) return;
+  const mySessions  = feedData.filter(s => s.user_id === currentUser.id);
+  const allSessions = feedData;
+  if (!allSessions.length) return;
+
+  const avg = arr => arr.length ? Math.round(arr.reduce((s, r) => s + (r.total > 0 ? r.score / r.total : 0), 0) / arr.length * 100) : 0;
+  const myAvg  = avg(mySessions);
+  const glbAvg = avg(allSessions);
+  const myGames = mySessions.length;
+  const myBest  = mySessions.reduce((b, s) => Math.max(b, s.total > 0 ? Math.round(s.score/s.total*100) : 0), 0);
+  const myTotalTime = mySessions.reduce((s, r) => s + (r.duration_sec || 0), 0);
+
+  // Stat cards
+  const cards = [
+    { icon: '🎯', val: myAvg + '%',       lbl: 'Mon score moyen' },
+    { icon: '🎮', val: myGames,            lbl: 'Parties jouées' },
+    { icon: '⭐', val: myBest + '%',       lbl: 'Meilleur score' },
+    { icon: '⏱️', val: fmtTime(myTotalTime), lbl: 'Temps total joué' },
+  ];
+  document.getElementById('ms-cards').innerHTML = cards.map(c => `
+    <div class="qz-gamestat-card">
+      <div class="gs-icon">${c.icon}</div>
+      <div class="gs-value">${c.val}</div>
+      <div class="gs-label">${c.lbl}</div>
+    </div>`).join('');
+
+  // vs global comparison bars
+  const rows = [
+    { lbl: 'Score moyen', me: myAvg, avg: glbAvg },
+    { lbl: 'Meilleur score', me: myBest, avg: Math.max(...allSessions.map(s => s.total > 0 ? Math.round(s.score/s.total*100) : 0)) },
+  ];
+  const vsHtml = rows.map(r => `
+    <div class="multi-vs-row">
+      <div class="multi-vs-label">${r.lbl}<span>Moi ${r.me}% · Moy. ${r.avg}%</span></div>
+      <div class="multi-bar-wrap">
+        <div class="multi-bar-me"  style="width:${r.me}%"></div>
+        <div class="multi-bar-avg" style="width:${r.avg}%"></div>
+      </div>
+    </div>`).join('');
+  document.getElementById('ms-vs').innerHTML = `<div class="multi-vs-title">Moi vs Moyenne globale</div>${vsHtml}`;
+}
 </script>
 </body>
 </html>
