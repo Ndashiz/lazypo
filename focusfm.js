@@ -42,6 +42,7 @@
     focusMode:    'fm_focus_mode',
     plTab:        'fm_playlist_tab',
     wasPlaying:   'fm_was_playing',
+    shown:        'fm_shown',   // '1' = bar visible, '0' / absent = hidden
   };
 
   /* ── State ──────────────────────────────────────────────────────── */
@@ -152,6 +153,8 @@
       alert('⚠️ Paste your Spotify Client ID in focusfm.js first.\ndeveloper.spotify.com → create app → copy Client ID');
       return;
     }
+    // Mark bar as shown so it reappears after OAuth redirect
+    localStorage.setItem(K.shown, '1');
     const v = randB64url(64), ch = await sha256url(v), st = randB64url(16);
     localStorage.setItem('fm_pkce_verifier', v);
     localStorage.setItem('fm_pkce_state', st);
@@ -565,12 +568,14 @@ html.fm-focus-mode #_fm_mini { border-color:#fbbf24; box-shadow:0 0 20px rgba(25
   }
 
   function hideMini() {
+    localStorage.setItem(K.shown, '0');
     const el = document.getElementById('_fm_mini');
     if (el) el.style.display = 'none';
     closePanelEl();
   }
 
   function showMini() {
+    localStorage.setItem(K.shown, '1');
     const el = getMiniEl();
     el.style.display = '';
     render();
@@ -754,7 +759,11 @@ html.fm-focus-mode #_fm_mini { border-color:#fbbf24; box-shadow:0 0 20px rgba(25
     // Restore expanded state
     isExpanded = localStorage.getItem(K.expanded) === '1';
 
-    render();
+    // Only show the bar if the user explicitly opened it before
+    // (FocusFM bar is hidden by default until the user clicks the FocusFM button)
+    if (localStorage.getItem(K.shown) === '1') {
+      render();
+    }
     initKeys();
 
     // Save playback state before page navigation so next page can resume
