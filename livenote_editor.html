@@ -1142,7 +1142,7 @@ function setupDropZone() {
 ═══════════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', async () => {
 
-  const session = await LazyAuth.requireAuthOrPopup();
+  const session = await LazyAuth.requireModule('livenote');
   if (!session) return;
   const user = session.user;
   const profile = await LazyAuth.getProfile(user.id);
