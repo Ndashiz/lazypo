@@ -1321,6 +1321,16 @@ tr.row-selected { background: rgba(59,130,246,.05); }
 .feed-score-badge.mid  { background: rgba(234,179,8,.12);  color: #fbbf24; }
 .feed-score-badge.bad  { background: rgba(239,68,68,.12);  color: #f87171; }
 .feed-meta { font-size: 12px; color: var(--muted); margin-left: auto; }
+/* Feed avatar */
+.feed-avatar {
+  width: 36px; height: 36px; border-radius: 50%; object-fit: cover;
+  flex-shrink: 0; border: 2px solid var(--border);
+}
+.feed-avatar-initial {
+  width: 36px; height: 36px; border-radius: 50%; background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
 .feed-comment-toggle {
   background: transparent; border: 1px solid var(--border); border-radius: 20px;
   color: var(--muted); font-size: 12px; padding: 3px 10px; cursor: pointer;
@@ -1974,13 +1984,13 @@ tr.row-selected { background: rgba(59,130,246,.05); }
 
     <!-- Sub-nav -->
     <div class="multi-subnav">
-      <button class="multi-subnav-btn active" data-sub="classement">🏆 Classement</button>
-      <button class="multi-subnav-btn"        data-sub="feed">📰 Feed</button>
+      <button class="multi-subnav-btn"        data-sub="classement">🏆 Classement</button>
+      <button class="multi-subnav-btn active" data-sub="feed">📰 Feed</button>
       <button class="multi-subnav-btn"        data-sub="mystats">📈 Mes stats</button>
     </div>
 
     <!-- Classement -->
-    <div class="multi-sub active" id="multi-sub-classement">
+    <div class="multi-sub" id="multi-sub-classement">
       <div class="qz-table-wrap">
         <table class="qz-table" id="lb-table">
           <thead><tr>
@@ -1992,7 +2002,7 @@ tr.row-selected { background: rgba(59,130,246,.05); }
     </div>
 
     <!-- Feed -->
-    <div class="multi-sub" id="multi-sub-feed">
+    <div class="multi-sub active" id="multi-sub-feed">
       <div id="feed-list"></div>
       <div style="text-align:center;margin-top:12px;">
         <button class="btn-secondary" id="feed-load-more" style="display:none;font-size:13px;padding:8px 20px;">Charger plus</button>
@@ -4016,6 +4026,7 @@ let feedOffset     = 0;
 let feedData       = [];
 let lbData         = [];
 let multiDisplayName = null;
+let multiAvatarUrl   = null;
 
 const MULTI_CACHE_TTL = 2 * 60 * 1000; // 2 min
 
@@ -4024,8 +4035,9 @@ async function getMultiDisplayName() {
   if (multiDisplayName) return multiDisplayName;
   if (!currentUser) return null;
   try {
-    const { data } = await window.sb.from('profiles').select('username').eq('id', currentUser.id).single();
+    const { data } = await window.sb.from('profiles').select('username, avatar_url').eq('id', currentUser.id).single();
     multiDisplayName = data?.username || currentUser.email?.split('@')[0] || 'Joueur';
+    multiAvatarUrl   = data?.avatar_url || null;
   } catch { multiDisplayName = currentUser.email?.split('@')[0] || 'Joueur'; }
   return multiDisplayName;
 }
@@ -4038,6 +4050,7 @@ async function postMultiSession(score, total, durationSec, mode, lang) {
     await window.sb.from('quiz_sessions').insert({
       user_id: currentUser.id,
       display_name: name,
+      avatar_url: multiAvatarUrl || null,
       score, total, duration_sec: durationSec, mode, lang
     });
     multiLoaded = false; // invalidate cache so next visit refreshes
@@ -4156,18 +4169,29 @@ function renderFeed(sessions, append) {
   });
 }
 
+function feedFormatDate(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 function buildFeedItem(s) {
   const pct    = s.total > 0 ? Math.round((s.score / s.total) * 100) : 0;
   const bdgCls = pct >= 75 ? 'good' : pct >= 50 ? 'mid' : 'bad';
   const modeLabel = s.mode === 'verbes' ? '🔤 Verbes NL' : '📚 Vocab';
   const count  = s.quiz_session_comments?.[0]?.count ?? 0;
-  const timeAgoStr = timeAgo(s.created_at);
+  const dateStr = feedFormatDate(s.created_at);
+  const initial = (s.display_name || '?')[0].toUpperCase();
+  const avatarHtml = s.avatar_url
+    ? `<img class="feed-avatar" src="${escHtml(s.avatar_url)}" alt="${escHtml(s.display_name)}" loading="lazy">`
+    : `<div class="feed-avatar-initial">${escHtml(initial)}</div>`;
   return `<div class="feed-item" data-sid="${s.id}">
     <div class="feed-item-header">
+      ${avatarHtml}
       <span class="feed-name">${escHtml(s.display_name)}</span>
       <span class="feed-score-badge ${bdgCls}">${s.score}/${s.total} · ${pct}%</span>
       <span style="font-size:12px;color:var(--muted)">${modeLabel}</span>
-      <span class="feed-meta">${timeAgoStr}</span>
+      <span class="feed-meta">${dateStr}</span>
       <button class="feed-comment-toggle" data-sid="${s.id}" data-bound="">💬 ${count > 0 ? count : ''}</button>
     </div>
     <div class="feed-comments" style="display:none;" data-sid="${s.id}" data-loaded="">
