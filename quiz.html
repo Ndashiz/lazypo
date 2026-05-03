@@ -3009,18 +3009,10 @@ function renderVocab() {
     return;
   }
 
-  // Clamp vocabPage
-  const maxPage = Math.max(0, Math.ceil(fil / VOCAB_PER_PAGE) - 1);
-  if (vocabPage > maxPage) vocabPage = maxPage;
-
-  const start = vocabPage * VOCAB_PER_PAGE;
-  const end   = Math.min(start + VOCAB_PER_PAGE, fil);
-  const page  = list.slice(start, end);
-
-  tbody.innerHTML = page.map(word => renderVocabRow(word)).join('');
+  tbody.innerHTML = list.map(word => renderVocabRow(word)).join('');
   updateBulkBar();
   attachRowListeners();
-  renderPagination(fil, start, end);
+  document.getElementById('vocab-pagination').innerHTML = '';
 }
 
 function renderPagination(total, start, end) {
