@@ -184,11 +184,37 @@
   /* ── Boot ────────────────────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', boot);
 
+  /* If the user uploaded an avatar at signup, login.html stashed it as a
+     dataURL in localStorage (Storage RLS needs an authenticated session,
+     which signUp doesn't provide when email confirmation is on). On first
+     login we flush that to Storage and persist the URL on profiles. */
+  async function _flushPendingAvatar() {
+    const { data: { session } } = await window.sb.auth.getSession();
+    if (!session || session.__dev) return;
+    const email = (session.user.email || '').toLowerCase();
+    if (!email) return;
+    const key = 'lazypo:pendingAvatar:' + email;
+    const dataUrl = localStorage.getItem(key);
+    if (!dataUrl) return;
+    try {
+      const blob = await (await fetch(dataUrl)).blob();
+      const ext  = (blob.type.split('/')[1] || 'png').replace('jpeg','jpg');
+      const file = new File([blob], `avatar.${ext}`, { type: blob.type });
+      const url  = await window.LazyAuth.uploadAvatar(session.user.id, file);
+      await window.LazyAuth.saveProfile(session.user.id, { avatar_url: url });
+    } catch (_) { /* swallow — best effort */ }
+    localStorage.removeItem(key);
+  }
+
   async function boot() {
+    await _flushPendingAvatar();
     await renderNavUser();
-    window.sb.auth.onAuthStateChange((event) => {
+    window.sb.auth.onAuthStateChange(async (event) => {
       if (event === 'SIGNED_OUT' && !IS_LOCAL) window.location.href = LOGIN_PAGE;
-      if (event === 'SIGNED_IN')  renderNavUser();
+      if (event === 'SIGNED_IN') {
+        await _flushPendingAvatar();
+        renderNavUser();
+      }
     });
 
     // Dynamically load session manager for authenticated users
@@ -223,7 +249,10 @@
     /* fetch profile — graceful if table doesn't exist yet */
     let profile = null;
     if (session.__dev) {
-      profile = { id: session.user.id, username: 'dev', avatar_url: null, is_admin: true };
+      profile = {
+        id: session.user.id, username: 'dev', avatar_url: null, is_admin: true,
+        allowed_modules: ['quiz','scope','sprint','jira','livenote','minutehub','focusfm']
+      };
     } else {
       try {
         const { data } = await window.sb
@@ -244,11 +273,30 @@
     const avatar   = profile?.avatar_url || null;
     const isAdmin  = profile?.is_admin || false;
     const initial  = username[0].toUpperCase();
+    const allowedModules = Array.isArray(profile?.allowed_modules)
+      ? profile.allowed_modules
+      : ['quiz'];
 
-    /* Broadcast profile to other modules (e.g. sidebar for admin-only items) */
+    /* Cache profile + broadcast to other modules (sidebar, page guards, …) */
+    window.LazyAuth.__profile = { isAdmin, username, email, avatar, allowedModules };
     document.dispatchEvent(new CustomEvent('lazypo:profile', {
-      detail: { isAdmin, username, email, avatar }
+      detail: { isAdmin, username, email, avatar, allowedModules }
     }));
+
+    /* Admin extras : fetch unread notification count + expose */
+    if (isAdmin && !session.__dev) {
+      try {
+        const { count } = await window.sb
+          .from('admin_notifications')
+          .select('id', { count: 'exact', head: true })
+          .eq('is_read', false);
+        const unread = count || 0;
+        window.LazyAuth.__adminUnread = unread;
+        document.dispatchEvent(new CustomEvent('lazypo:admin-notifs', {
+          detail: { unread }
+        }));
+      } catch (_) {}
+    }
 
     footer.innerHTML = `
       <div class="user-widget" id="authWidget">
@@ -450,6 +498,188 @@
     if (IS_LOCAL) return DEV_SESSION;
     window.location.href = LOGIN_PAGE; return null;
   };
+
+  /* ── Module access guard ─────────────────────────────────────── */
+  /* Module catalogue — labels shown in the lock screen.            */
+  const MODULE_LABELS = {
+    scope:     'Scope of Work',
+    sprint:    'Sprint Planning',
+    jira:      'Jira',
+    livenote:  'LiveNote',
+    minutehub: 'Minute Hub',
+    quiz:      'Knowledge Quiz',
+    focusfm:   'Focus FM',
+  };
+
+  async function _fetchAllowedModules(userId) {
+    if (window.LazyAuth.__profile?.allowedModules)
+      return window.LazyAuth.__profile.allowedModules;
+    if (IS_LOCAL && DEV_SESSION && userId === DEV_SESSION.user.id)
+      return ['quiz','scope','sprint','jira','livenote','minutehub','focusfm'];
+    try {
+      const { data } = await window.sb
+        .from('profiles').select('allowed_modules,is_admin').eq('id', userId).single();
+      if (data?.is_admin) {
+        return ['quiz','scope','sprint','jira','livenote','minutehub','focusfm'];
+      }
+      return Array.isArray(data?.allowed_modules) ? data.allowed_modules : ['quiz'];
+    } catch (_) { return ['quiz']; }
+  }
+
+  function _injectLockStyles() {
+    if (document.getElementById('__moduleLockStyles')) return;
+    const s = document.createElement('style');
+    s.id = '__moduleLockStyles';
+    s.textContent = `
+    #moduleLockOverlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(0,0,0,0.78); backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px; animation: __fadeIn 0.2s ease;
+      font-family: 'DM Sans', sans-serif;
+    }
+    #moduleLockCard {
+      background: #161616; border: 1px solid #2a2a2a;
+      border-radius: 18px; padding: 36px 32px;
+      max-width: 440px; width: 100%; text-align: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+      animation: __slideUp 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    #moduleLockCard .ml-icon {
+      width: 56px; height: 56px; border-radius: 14px;
+      background: rgba(251,191,36,0.10); border: 1px solid rgba(251,191,36,0.25);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px; font-size: 24px;
+    }
+    #moduleLockCard h2 { font-size: 18px; font-weight: 700; color: #f0f0f0; margin-bottom: 10px; }
+    #moduleLockCard p  { font-size: 14px; color: #8a8a8a; line-height: 1.6; margin-bottom: 22px; }
+    #moduleLockCard textarea {
+      width: 100%; padding: 10px 12px; margin-bottom: 16px;
+      background: #1c1c1c; border: 1px solid #2a2a2a;
+      border-radius: 10px; color: #f0f0f0; font: inherit; resize: vertical;
+      min-height: 64px; outline: none;
+    }
+    #moduleLockCard textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+    #moduleLockCard .ml-btn-request {
+      display: block; width: 100%; padding: 12px;
+      background: #3b82f6; color: #fff; border: none;
+      border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer;
+      transition: background 0.15s;
+    }
+    #moduleLockCard .ml-btn-request:hover { background: #2563eb; }
+    #moduleLockCard .ml-btn-request:disabled { opacity: 0.6; cursor: not-allowed; }
+    #moduleLockCard .ml-btn-back {
+      display: block; margin-top: 12px; background: none; border: none;
+      color: #6b6b6b; font: inherit; cursor: pointer; text-decoration: none;
+    }
+    #moduleLockCard .ml-btn-back:hover { color: #f0f0f0; }
+    #moduleLockCard .ml-status {
+      font-size: 13px; padding: 10px 12px; border-radius: 8px;
+      margin-bottom: 14px; display: none;
+    }
+    #moduleLockCard .ml-status.show { display: block; }
+    #moduleLockCard .ml-status.pending {
+      background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.25); color: #fcd34d;
+    }
+    #moduleLockCard .ml-status.success {
+      background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.25); color: #86efac;
+    }
+    #moduleLockCard .ml-status.error {
+      background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); color: #fca5a5;
+    }
+    `;
+    document.head.appendChild(s);
+  }
+
+  async function _showModuleLockOverlay(moduleId) {
+    _injectLockStyles();
+    if (document.getElementById('moduleLockOverlay')) return;
+    const label = MODULE_LABELS[moduleId] || moduleId;
+    const overlay = document.createElement('div');
+    overlay.id = 'moduleLockOverlay';
+    overlay.innerHTML = `
+      <div id="moduleLockCard">
+        <div class="ml-icon">🔒</div>
+        <h2>Accès restreint — ${esc(label)}</h2>
+        <p>Ce module n'est pas inclus dans ton accès par défaut. Demande l'accès à l'admin et tu seras notifié dès qu'il aura validé.</p>
+        <div class="ml-status" id="mlStatus"></div>
+        <textarea id="mlMessage" placeholder="Pourquoi as-tu besoin de ce module ? (optionnel)"></textarea>
+        <button class="ml-btn-request" id="mlRequest">Demander l'accès</button>
+        <a href="index.html" class="ml-btn-back">← Retour à l'accueil</a>
+      </div>`;
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+
+    /* Pré-remplit l'état si une requête existe déjà */
+    try {
+      const { data: { session } } = await window.sb.auth.getSession();
+      if (session && !session.__dev) {
+        const { data: existing } = await window.sb
+          .from('module_access_requests')
+          .select('status, created_at')
+          .eq('user_id', session.user.id)
+          .eq('module_id', moduleId)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        const last = existing?.[0];
+        if (last?.status === 'pending') _setLockStatus('pending', 'Demande déjà envoyée — en attente de validation.');
+      }
+    } catch (_) {}
+
+    document.getElementById('mlRequest').addEventListener('click', async () => {
+      const btn = document.getElementById('mlRequest');
+      const msg = document.getElementById('mlMessage').value.trim();
+      btn.disabled = true; btn.textContent = 'Envoi…';
+      try {
+        const { data: { session } } = await window.sb.auth.getSession();
+        if (!session) throw new Error('Non connecté');
+        const { error } = await window.sb.from('module_access_requests').insert({
+          user_id: session.user.id, module_id: moduleId, message: msg || null,
+        });
+        if (error) {
+          // 23505 = unique violation → demande déjà pending
+          if (error.code === '23505') {
+            _setLockStatus('pending', 'Demande déjà en attente.');
+          } else { throw error; }
+        } else {
+          _setLockStatus('success', 'Demande envoyée ! L\'admin a été notifié.');
+        }
+      } catch (e) {
+        _setLockStatus('error', e.message || 'Erreur lors de l\'envoi.');
+      } finally {
+        btn.disabled = true; btn.textContent = 'Demande envoyée';
+      }
+    });
+  }
+
+  function _setLockStatus(kind, text) {
+    const el = document.getElementById('mlStatus');
+    if (!el) return;
+    el.className = 'ml-status show ' + kind;
+    el.textContent = text;
+  }
+
+  /** Returns session if user has the module, otherwise locks the page. */
+  window.LazyAuth.requireModule = async function (moduleId) {
+    const { data: { session } } = await window.sb.auth.getSession();
+    const liveSession = session || (IS_LOCAL ? DEV_SESSION : null);
+    if (!liveSession) { window.location.href = LOGIN_PAGE; return null; }
+
+    const allowed = await _fetchAllowedModules(liveSession.user.id);
+    if (allowed.includes(moduleId)) return liveSession;
+
+    _showModuleLockOverlay(moduleId);
+    return null;
+  };
+
+  window.LazyAuth.canAccess = async function (moduleId) {
+    const { data: { session } } = await window.sb.auth.getSession();
+    const liveSession = session || (IS_LOCAL ? DEV_SESSION : null);
+    if (!liveSession) return false;
+    const allowed = await _fetchAllowedModules(liveSession.user.id);
+    return allowed.includes(moduleId);
+  };
+
   /** Expose flags for other modules / debugging */
   window.LazyAuth.isLocal    = IS_LOCAL;
   window.LazyAuth.devSession = DEV_SESSION;

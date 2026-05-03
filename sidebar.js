@@ -88,6 +88,14 @@
       desc: 'Manage your profile, avatar and password.'
     },
     {
+      id: 'admin',
+      icon: '🛡️',
+      label: 'Admin',
+      url: 'admin.html',
+      adminOnly: true,
+      desc: 'Notifications, demandes d\'accès et gestion des utilisateurs.'
+    },
+    {
       id: 'docs',
       icon: '📖',
       label: 'Documentation',
@@ -97,6 +105,9 @@
       desc: 'Architecture technique, schémas ER et flux système — admins uniquement.'
     }
   ];
+
+  /* IDs des items qui sont des modules gateables (allowed_modules)         */
+  const GATED_MODULES = new Set(['scope','sprint','jira','livenote','minutehub','focusfm']);
 
   /* ═══════════════════════════════════════════════════
      ACTIVE PAGE DETECTION
@@ -343,15 +354,63 @@
     .sb-admin-only.sb-admin-visible .sb-item-link { color: #6b6b4a; }
     .sb-admin-only.sb-admin-visible:hover .sb-item-link { color: #fef3c7; }
     .sb-admin-only.sb-admin-visible:hover .sb-icon { background: rgba(251,191,36,.18); }
+
+    /* ── Locked module items (no access) ── */
+    .sb-item.sb-locked .sb-icon { opacity: 0.45; }
+    .sb-item.sb-locked .sb-item-link { color: #444; }
+    .sb-item.sb-locked .sb-lock {
+      position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+      font-size: 11px; opacity: 0;
+      transition: opacity 0.18s ease;
+    }
+    .sb:hover .sb-item.sb-locked .sb-lock { opacity: 0.7; }
+
+    /* ── Admin notif badge ── */
+    .sb-item .sb-notif-badge {
+      position: absolute; top: 4px; left: 28px;
+      min-width: 16px; height: 16px; padding: 0 5px;
+      border-radius: 8px; background: #ef4444; color: #fff;
+      font-size: 10px; font-weight: 700; line-height: 16px;
+      text-align: center; box-shadow: 0 0 0 2px #111111;
+      display: none;
+    }
+    .sb-item .sb-notif-badge.show { display: inline-block; }
   `;
   document.head.appendChild(styleEl);
 
-  /* Show admin-only items once auth.js resolves the profile */
+  /* Show admin-only items + handle module locks once profile resolves */
   document.addEventListener('lazypo:profile', function (e) {
-    if (!e.detail?.isAdmin) return;
-    document.querySelectorAll('.sb-admin-only').forEach(el => {
-      el.classList.add('sb-admin-visible');
+    const detail = e.detail || {};
+    if (detail.isAdmin) {
+      document.querySelectorAll('.sb-admin-only').forEach(el => {
+        el.classList.add('sb-admin-visible');
+      });
+    }
+    const allowed = new Set(detail.allowedModules || ['quiz']);
+    document.querySelectorAll('[data-sb-id]').forEach(el => {
+      const id = el.getAttribute('data-sb-id');
+      if (!GATED_MODULES.has(id)) return;
+      if (detail.isAdmin || allowed.has(id)) {
+        el.classList.remove('sb-locked');
+      } else {
+        el.classList.add('sb-locked');
+      }
     });
+  });
+
+  /* Admin notification count → red badge on Admin item */
+  document.addEventListener('lazypo:admin-notifs', function (e) {
+    const unread = e.detail?.unread || 0;
+    const adminItem = document.querySelector('[data-sb-id="admin"]');
+    if (!adminItem) return;
+    let badge = adminItem.querySelector('.sb-notif-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'sb-notif-badge';
+      adminItem.querySelector('.sb-item-link')?.appendChild(badge);
+    }
+    badge.textContent = unread > 99 ? '99+' : String(unread);
+    badge.classList.toggle('show', unread > 0);
   });
 
   /* ═══════════════════════════════════════════════════
@@ -368,12 +427,14 @@
     const clickAttr   = !item.url
       ? `onclick="${item.onClick || `window.showUnavailablePopup && window.showUnavailablePopup('${item.label}')`}"`
       : '';
+    const lockSpan    = GATED_MODULES.has(item.id) ? '<span class="sb-lock">🔒</span>' : '';
 
     return `
       <div class="sb-item${active}${adminClass}" data-sb-id="${item.id}">
         <${tag} class="sb-item-link" ${hrefAttr} ${targetAttr} ${clickAttr}>
           <div class="sb-icon">${item.icon}</div>
           <span class="sb-label">${item.label}</span>
+          ${lockSpan}
         </${tag}>
         <div class="sb-desc">${item.desc}</div>
       </div>`;

@@ -332,7 +332,7 @@ function joinDoc() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  const session = await LazyAuth.requireAuthOrPopup();
+  const session = await LazyAuth.requireModule('livenote');
   if (!session) return;
   await loadDocs(session.user.id);
   document.getElementById('btnNew').addEventListener('click', () => createDoc(session.user.id));
