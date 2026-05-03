@@ -574,13 +574,31 @@ async function loadSessions() {
   const container = document.getElementById('sessionsContainer');
   if (!container) return;
 
-  const sessions = await window.LazySession?.getSessions?.();
-  if (!sessions || sessions.length === 0) {
+  const rawSessions = await window.LazySession?.getSessions?.();
+  if (!rawSessions || rawSessions.length === 0) {
     container.innerHTML = '<div style="font-size:13px;color:var(--muted);">No active sessions found.</div>';
     return;
   }
 
+  // Deduplicate by device_info: keep the most recent (or current) session per device
   const currentId = window.LazySession?.getCurrentSessionId?.();
+  const byDevice = new Map();
+  for (const s of rawSessions) {
+    const key = s.device_info || s.id;
+    const existing = byDevice.get(key);
+    // Prefer the current session, then the most recently seen
+    if (!existing
+      || s.id === currentId
+      || (!existing.id !== currentId && new Date(s.last_seen) > new Date(existing.last_seen))
+    ) {
+      byDevice.set(key, s);
+    }
+  }
+  const sessions = [...byDevice.values()].sort((a, b) =>
+    (a.id === currentId ? -1 : b.id === currentId ? 1 : 0)
+    || new Date(b.last_seen) - new Date(a.last_seen)
+  );
+
   const fiveMinsAgo = Date.now() - 5 * 60 * 1000;
 
   container.innerHTML = sessions.map(s => {

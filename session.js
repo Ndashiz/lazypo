@@ -93,19 +93,38 @@
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
 
-    const userId = session.user.id;
-    const now = new Date().toISOString();
+    const userId    = session.user.id;
+    const deviceInfo = getDeviceInfo();
+    const now       = new Date().toISOString();
 
-    // Insert new session row
-    const { data, error } = await sb.from('user_sessions').insert({
-      user_id:     userId,
-      device_info: getDeviceInfo(),
-      last_seen:   now,
-      is_active:   true,
-    }).select('id').single();
+    // Reuse an existing active session for the same device instead of creating a duplicate
+    const { data: existing } = await sb.from('user_sessions')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('device_info', deviceInfo)
+      .eq('is_active', true)
+      .order('last_seen', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (!error && data) {
-      sessionDbId = data.id;
+    if (existing?.id) {
+      // Update last_seen on the existing session
+      sessionDbId = existing.id;
+      await sb.from('user_sessions')
+        .update({ last_seen: now })
+        .eq('id', sessionDbId);
+    } else {
+      // First session from this device — create a new row
+      const { data, error } = await sb.from('user_sessions').insert({
+        user_id:     userId,
+        device_info: deviceInfo,
+        last_seen:   now,
+        is_active:   true,
+      }).select('id').single();
+
+      if (!error && data) {
+        sessionDbId = data.id;
+      }
     }
 
     // Cleanup stale sessions (inactive + older than 24h)

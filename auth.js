@@ -295,7 +295,24 @@
     },
     /** Upsert profile fields */
     saveProfile: async (userId, fields) => {
-      return window.sb.from('profiles').upsert({ id: userId, ...fields });
+      // Try UPDATE first (works when row already exists and covers all RLS scenarios)
+      const { data: updated, error: upErr } = await window.sb
+        .from('profiles')
+        .update(fields)
+        .eq('id', userId)
+        .select('id');
+
+      if (upErr) return { error: upErr };
+
+      // If no row was updated (first-time user), INSERT
+      if (!updated || updated.length === 0) {
+        const { error: insErr } = await window.sb
+          .from('profiles')
+          .insert({ id: userId, ...fields });
+        return { error: insErr };
+      }
+
+      return { error: null };
     },
     /** Upload avatar and return public URL */
     uploadAvatar: async (userId, file) => {
