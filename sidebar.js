@@ -540,17 +540,45 @@
    * one we came from). Top-level `function` and `var` declarations are
    * re-exposed on `window` afterwards so existing inline `onclick=`
    * handlers keep working.
+   *
+   * The wrapper also monkey-patches `document.addEventListener` for the
+   * duration of the script so that any `DOMContentLoaded` (or `load`)
+   * listener registered by the page fires *immediately* — the real
+   * event has already been dispatched once at the original page load
+   * and won't fire again on SPA navigation, which would leave page-
+   * level state (e.g. `currentSession`) un-initialised.
    */
   function _wrapInlineForSpa(code) {
     if (!code || !code.trim()) return code;
-    // Best-effort regex extraction at line start (top-level only).
     const fnMatches  = [...code.matchAll(/^[ \t]*(?:async[ \t]+)?function[ \t]+(\w+)/gm)];
     const varMatches = [...code.matchAll(/^[ \t]*var[ \t]+(\w+)/gm)];
     const names = [...new Set([...fnMatches, ...varMatches].map(m => m[1]))];
     const exposeCode = names.length
       ? '\n' + names.map(n => `try{window.${n}=${n};}catch(_){}`).join('\n')
       : '';
-    return `(function(){\n${code}\n${exposeCode}\n}).call(window);`;
+    return `(function(){
+  var _origAddDoc = document.addEventListener;
+  var _origAddWin = window.addEventListener;
+  function _patchedAdd(target, orig) {
+    return function(ev, cb, opts) {
+      if ((ev === 'DOMContentLoaded' || ev === 'load') && typeof cb === 'function') {
+        try { Promise.resolve().then(function(){ cb(new Event(ev)); }); }
+        catch(e) { console.error('[spa-init]', e); }
+        return;
+      }
+      return orig.call(target, ev, cb, opts);
+    };
+  }
+  document.addEventListener = _patchedAdd(document, _origAddDoc);
+  window.addEventListener   = _patchedAdd(window, _origAddWin);
+  try {
+${code}
+${exposeCode}
+  } finally {
+    document.addEventListener = _origAddDoc;
+    window.addEventListener   = _origAddWin;
+  }
+}).call(window);`;
   }
 
   async function _spaNavigate(url) {
