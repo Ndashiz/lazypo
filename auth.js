@@ -391,6 +391,8 @@
       if (IS_LOCAL) return DEV_SESSION;
       window.location.href = LOGIN_PAGE; return null;
     },
+    /** Re-render the sidebar user widget — call after avatar/username changes */
+    refreshNavUser: () => renderNavUser(),
     /** Fetch a user's profile row */
     getProfile: async (userId) => {
       if (IS_LOCAL && DEV_SESSION && userId === DEV_SESSION.user.id) {
