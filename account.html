@@ -260,7 +260,7 @@ body {
             <input type="file" id="avatarInput" accept="image/*">
             <div>Drop image here or <strong>browse</strong></div>
           </div>
-          <div class="avatar-hint">JPG, PNG or GIF · Max 2 MB</div>
+          <div class="avatar-hint">JPG, PNG or GIF · Max 2 MB · <strong>auto-saved on drop</strong></div>
           <div class="inline-msg" id="avatarMsg"></div>
         </div>
       </div>
@@ -290,7 +290,7 @@ body {
       </div>
       <div class="inline-msg" id="profileMsg"></div>
       <div class="btn-row">
-        <button class="btn-save" id="btnSaveProfile" onclick="saveProfile()">Save changes</button>
+        <button class="btn-save" id="btnSaveProfile" onclick="saveProfile()">💾 Save profile</button>
       </div>
     </div>
 
@@ -496,16 +496,31 @@ async function previewAvatar(file) {
   showMsg('avatarMsg', '<span class="spin"></span>Uploading…', 'success');
   try {
     const url = await LazyAuth.uploadAvatar(currentSession.user.id, file);
+    console.log('[avatar] uploaded to', url);
+
     // Persist only avatar_url so the username field stays untouched if the
     // user is in the middle of typing a new pseudo
     const { error } = await LazyAuth.saveProfile(currentSession.user.id, { avatar_url: url });
     if (error) throw error;
+
+    // Verify the save actually persisted by re-fetching the profile —
+    // catches silent RLS failures or schema mismatches.
+    const verify = await LazyAuth.getProfile(currentSession.user.id);
+    if (!verify || verify.avatar_url !== url) {
+      throw new Error("La photo a été uploadée mais n'a pas été sauvegardée dans le profil. Vérifie les permissions RLS sur la table profiles.");
+    }
+
     pendingAvatarFile = null;
-    currentProfile = { ...currentProfile, avatar_url: url };
+    currentProfile = verify;
     showMsg('avatarMsg', '✅ Photo updated!', 'success');
+
+    // Refresh the sidebar avatar so the new photo shows immediately
+    if (typeof LazyAuth.refreshNavUser === 'function') {
+      LazyAuth.refreshNavUser();
+    }
   } catch (err) {
     console.error('[avatar upload]', err);
-    showMsg('avatarMsg', err.message || 'Upload failed. Make sure the "avatars" bucket exists in Supabase.', 'error');
+    showMsg('avatarMsg', err.message || 'Upload failed. Vérifie que le bucket "avatars" existe et est public dans Supabase.', 'error');
   }
 }
 
@@ -514,6 +529,9 @@ async function saveProfile() {
   const btn      = document.getElementById('btnSaveProfile');
   const username = document.getElementById('inputUsername').value.trim();
   if (!username) { showMsg('profileMsg', 'Username cannot be empty.', 'error'); return; }
+  if (username.length < 3 || username.length > 20) {
+    showMsg('profileMsg', 'Username must be 3–20 characters.', 'error'); return;
+  }
 
   btn.disabled = true;
   btn.innerHTML = '<span class="spin"></span>Saving…';
@@ -532,14 +550,26 @@ async function saveProfile() {
     const { error } = await LazyAuth.saveProfile(currentSession.user.id, { username, avatar_url: avatarUrl });
     if (error) throw error;
 
-    currentProfile = { ...currentProfile, username, avatar_url: avatarUrl };
+    // Verify save actually persisted (catches silent RLS issues)
+    const verify = await LazyAuth.getProfile(currentSession.user.id);
+    if (!verify || verify.username !== username) {
+      throw new Error("La sauvegarde n'a pas été persistée — vérifie les permissions RLS de la table profiles.");
+    }
+
+    currentProfile = verify;
     renderProfile();
-    showMsg('profileMsg', 'Profile saved!', 'success');
+    showMsg('profileMsg', '✅ Profile saved!', 'success');
+
+    // Refresh sidebar so the new pseudo appears immediately
+    if (typeof LazyAuth.refreshNavUser === 'function') {
+      LazyAuth.refreshNavUser();
+    }
   } catch (err) {
+    console.error('[saveProfile]', err);
     showMsg('profileMsg', err.message || 'Could not save profile.', 'error');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = 'Save changes';
+    btn.innerHTML = '💾 Save profile';
   }
 }
 
