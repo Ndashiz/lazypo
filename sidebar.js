@@ -358,7 +358,11 @@
     /* ── Locked module items (no access) ── */
     .sb-item.sb-locked .sb-icon { opacity: 0.45; }
     .sb-item.sb-locked .sb-item-link { color: #444; }
+    /* Lock span is rendered for every gated module but hidden until the
+       sb-locked class is applied (i.e. user does not have access). */
+    .sb-item .sb-lock { display: none; }
     .sb-item.sb-locked .sb-lock {
+      display: block;
       position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
       font-size: 11px; opacity: 0;
       transition: opacity 0.18s ease;
