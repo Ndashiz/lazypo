@@ -1711,25 +1711,20 @@ tr.row-selected { background: rgba(59,130,246,.05); }
     <div class="qz-add-form">
       <div class="qz-add-title">Add a new word</div>
       <div class="qz-add-fields">
-        <div class="qz-field">
-          <label class="qz-field-label">Word (EN)</label>
-          <input type="text" id="add-source-en" class="qz-input" placeholder="e.g. leverage" autocomplete="off">
-        </div>
-        <button class="qz-swap-btn" id="btn-swap-lang" title="Swap language">⇄</button>
-        <div class="qz-field">
-          <label class="qz-field-label">Word (NL)</label>
-          <input type="text" id="add-source-nl" class="qz-input" placeholder="e.g. hefboom" autocomplete="off">
-        </div>
-        <div class="qz-field">
-          <label class="qz-field-label">Translation (FR)</label>
-          <input type="text" id="add-target" class="qz-input" placeholder="e.g. levier" autocomplete="off">
-        </div>
         <div class="qz-field shrink">
           <label class="qz-field-label">Direction</label>
           <div class="qz-dir-toggle" role="group" aria-label="Language pair">
             <button class="qz-dir-btn active" data-lang="EN→FR">EN → FR</button>
             <button class="qz-dir-btn" data-lang="NL→FR">NL → FR</button>
           </div>
+        </div>
+        <div class="qz-field">
+          <label class="qz-field-label" id="add-source-label">Word (EN)</label>
+          <input type="text" id="add-source" class="qz-input" placeholder="e.g. leverage" autocomplete="off">
+        </div>
+        <div class="qz-field">
+          <label class="qz-field-label">Translation (FR)</label>
+          <input type="text" id="add-target" class="qz-input" placeholder="e.g. levier" autocomplete="off">
         </div>
         <div class="qz-field" style="flex:1.5">
           <label class="qz-field-label">Example</label>
@@ -2815,19 +2810,20 @@ let editingId       = null;
 let vocabPage       = 0;
 const VOCAB_PER_PAGE = 20;
 
-/* Direction toggle */
+/* Direction toggle — also updates the source field's label & placeholder */
+function applyDirection(lang) {
+  selectedLang = lang;
+  const isNL = lang === 'NL→FR';
+  document.querySelectorAll('.qz-dir-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  const lbl = document.getElementById('add-source-label');
+  const inp = document.getElementById('add-source');
+  if (lbl) lbl.textContent = isNL ? 'Word (NL)' : 'Word (EN)';
+  if (inp) inp.placeholder  = isNL ? 'e.g. hefboom' : 'e.g. leverage';
+}
 document.querySelectorAll('.qz-dir-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.qz-dir-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    selectedLang = btn.dataset.lang;
-  });
+  btn.addEventListener('click', () => applyDirection(btn.dataset.lang));
 });
-/* Swap button */
-document.getElementById('btn-swap-lang').addEventListener('click', () => {
-  selectedLang = selectedLang === 'EN→FR' ? 'NL→FR' : 'EN→FR';
-  document.querySelectorAll('.qz-dir-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === selectedLang));
-});
+applyDirection(selectedLang);
 
 /* Search */
 document.getElementById('vocab-search').addEventListener('input', e => {
@@ -2927,29 +2923,24 @@ document.getElementById('bulk-deselect').addEventListener('click', () => {
 /* Add word form */
 document.getElementById('btn-add-word').addEventListener('click', submitAddWord);
 
-['add-source-en','add-source-nl','add-target','add-example','add-tips'].forEach(id => {
+['add-source','add-target','add-example','add-tips'].forEach(id => {
   document.getElementById(id)?.addEventListener('keydown', e => {
     if (e.key === 'Enter') submitAddWord();
   });
 });
 
 function submitAddWord() {
-  const sourceEn = document.getElementById('add-source-en').value.trim();
-  const sourceNl = document.getElementById('add-source-nl').value.trim();
-  const source   = selectedLang === 'NL→FR' ? sourceNl : sourceEn;
+  const source   = document.getElementById('add-source').value.trim();
   const target   = document.getElementById('add-target').value.trim();
   const example  = document.getElementById('add-example').value.trim();
   const tips     = document.getElementById('add-tips').value.trim();
   if (!source || !target) { showToast('Please fill in source word and translation'); return; }
   addWord({ source_word: source, target_translation: target, language_pair: selectedLang, example_sentence: example || null, ...(tips ? { tips } : {}) });
-  document.getElementById('add-source-en').value = '';
-  document.getElementById('add-source-nl').value = '';
-  document.getElementById('add-target').value    = '';
-  document.getElementById('add-example').value   = '';
-  document.getElementById('add-tips').value      = '';
-  (selectedLang === 'NL→FR'
-    ? document.getElementById('add-source-nl')
-    : document.getElementById('add-source-en')).focus();
+  document.getElementById('add-source').value  = '';
+  document.getElementById('add-target').value  = '';
+  document.getElementById('add-example').value = '';
+  document.getElementById('add-tips').value    = '';
+  document.getElementById('add-source').focus();
 }
 
 function getFilteredVocab() {
