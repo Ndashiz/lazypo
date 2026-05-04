@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script>if(location.protocol==="http:"&&location.hostname!=="localhost"&&location.hostname!=="127.0.0.1")location.replace("https:"+location.href.slice(5));</script>
+<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+<script>
+  const path = window.location.pathname;
+  const lower = path.toLowerCase();
+  if (path !== lower) window.location.replace(lower);
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LazyPO — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:       #0c0c0c;
+  --sidebar:  #111111;
+  --surface:  #161616;
+  --surface2: #1c1c1c;
+  --border:   #222222;
+  --border2:  #2a2a2a;
+  --accent:   #3b82f6;
+  --accent2:  #60a5fa;
+  --glow:     rgba(59,130,246,0.15);
+  --text:     #f0f0f0;
+  --muted:    #6b6b6b;
+  --faint:    #2e2e2e;
+  --danger:   #ef4444;
+  --success:  #22c55e;
+  --warning:  #f59e0b;
+  --r:        10px;
+}
+
+html, body { height: 100%; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.main { height: 100vh; overflow-y: auto; overflow-x: hidden; }
+
+.page-header {
+  padding: 40px 48px 0;
+  display: flex; align-items: flex-end; justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 24px; margin-bottom: 28px;
+}
+.page-title {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px; font-weight: 500; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+}
+.page-heading {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 24px; font-weight: 700; color: var(--text);
+}
+.page-body { padding: 0 48px 64px; max-width: 960px; }
+
+.tabs {
+  display: flex; gap: 4px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 4px; margin-bottom: 22px;
+  width: fit-content;
+}
+.tab {
+  padding: 9px 18px; border-radius: 8px; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  background: transparent; border: none; color: var(--muted);
+  transition: background 0.15s, color 0.15s;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.tab:hover { color: var(--text); }
+.tab.active { background: var(--surface2); color: var(--text); }
+.tab-count {
+  font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 999px;
+  background: rgba(255,255,255,0.06); color: var(--muted);
+}
+.tab.active .tab-count { background: rgba(59,130,246,0.18); color: var(--accent2); }
+
+.req-list { display: flex; flex-direction: column; gap: 10px; }
+.req-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px 18px;
+  display: flex; gap: 16px; align-items: center; flex-wrap: wrap;
+}
+.req-avatar {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; color: #fff; font-size: 14px; flex-shrink: 0;
+}
+.req-main { flex: 1; min-width: 220px; }
+.req-line { font-size: 14px; color: var(--text); margin-bottom: 4px; line-height: 1.5; }
+.req-line strong { font-weight: 600; }
+.req-meta { font-size: 12px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; }
+.req-feature {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  border-radius: 999px; padding: 3px 10px;
+  font-size: 12px; font-weight: 600;
+}
+
+.req-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.btn {
+  padding: 8px 14px; border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s; border: 1px solid transparent;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn.approve  { background: rgba(34,197,94,0.10); color: #4ade80; border-color: rgba(34,197,94,0.3); }
+.btn.approve:hover { background: rgba(34,197,94,0.18); }
+.btn.reject   { background: rgba(239,68,68,0.10); color: #f87171; border-color: rgba(239,68,68,0.3); }
+.btn.reject:hover { background: rgba(239,68,68,0.18); }
+.btn.revoke   { background: rgba(239,68,68,0.06); color: #f87171; border-color: rgba(239,68,68,0.25); }
+.btn.revoke:hover { background: rgba(239,68,68,0.14); }
+.btn.regrant  { background: var(--accent); color: #fff; }
+.btn.regrant:hover { background: #2563eb; }
+.btn.secondary { background: transparent; color: var(--muted); border-color: var(--border); }
+.btn.secondary:hover { background: var(--surface2); color: var(--text); }
+
+.empty {
+  text-align: center; padding: 60px 20px;
+  color: var(--muted); font-size: 14px;
+}
+.empty h3 { font-size: 16px; color: var(--text); margin-bottom: 8px; font-weight: 600; }
+
+.loading { color: var(--muted); padding: 30px; text-align: center; font-size: 13px; }
+.error-box {
+  background: rgba(239,68,68,0.07); border: 1px solid rgba(239,68,68,0.25);
+  border-radius: 10px; padding: 14px 16px; color: #f87171; font-size: 13px;
+  margin-bottom: 16px;
+}
+.docs-link {
+  margin-top: 32px; padding: 16px 20px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex; align-items: center; gap: 12px;
+  color: var(--muted); font-size: 13px;
+}
+.docs-link a {
+  color: var(--accent2); text-decoration: none; font-weight: 600;
+}
+.docs-link a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<main class="main">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Admin</div>
+      <div class="page-heading">🛡️ Gestion des accès</div>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div id="errorBox" class="error-box" style="display:none;"></div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab active" data-tab="pending">⏳ Pending <span class="tab-count" id="cntPending">0</span></button>
+      <button class="tab" data-tab="granted">✅ Granted <span class="tab-count" id="cntGranted">0</span></button>
+      <button class="tab" data-tab="rejected">🚫 Rejected <span class="tab-count" id="cntRejected">0</span></button>
+    </div>
+
+    <section class="req-section" id="sectionPending">
+      <div class="req-list" id="listPending"><div class="loading">Loading…</div></div>
+    </section>
+    <section class="req-section" id="sectionGranted" hidden>
+      <div class="req-list" id="listGranted"></div>
+    </section>
+    <section class="req-section" id="sectionRejected" hidden>
+      <div class="req-list" id="listRejected"></div>
+    </section>
+
+    <div class="docs-link">
+      📖 Pour la documentation technique : <a href="docs/architecture.html" target="_blank">docs/architecture.html</a>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="sidebar.js"></script>
+<script src="auth.js"></script>
+<script>
+/* ════════════════════════════════════════════════════════════════
+   Admin page — manage feature access requests
+═══════════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  /* Mirror of sidebar ITEMS for displaying feature labels */
+  const FEATURE_LABELS = {
+    scope:     '✉️ Scope of Work',
+    sprint:    '📋 Sprint Planning',
+    jira:      '🎫 Jira',
+    livenote:  '📝 LiveNote',
+    minutehub: '📝 Minute Hub',
+    quiz:      '🧠 Knowledge Quiz',
+    focusfm:   '🎵 Focus FM',
+    feedback:  '💡 Feedback',
+    account:   '👤 My Account'
+  };
+
+  const state = {
+    session: null,
+    isAdmin: false,
+    rows: [],
+    profilesByUid: new Map(),
+    tab: 'pending'
+  };
+
+  document.addEventListener('DOMContentLoaded', boot);
+
+  async function boot() {
+    state.session = await window.LazyAuth.requireAuth();
+    if (!state.session) return;
+
+    let profile = null;
+    try { profile = await window.LazyAuth.getProfile(state.session.user.id); } catch (_) {}
+    state.isAdmin = !!profile?.is_admin;
+
+    if (!state.isAdmin) {
+      document.querySelector('.page-body').innerHTML = `
+        <div class="error-box">⛔ Cette page est réservée aux administrateurs.</div>
+        <p style="color:var(--muted);font-size:13px;">
+          <a href="index.html" style="color:var(--accent2);text-decoration:none;">← Retour à l'accueil</a>
+        </p>`;
+      return;
+    }
+
+    bindTabs();
+    await loadAll();
+  }
+
+  function bindTabs() {
+    document.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', () => switchTab(t.dataset.tab));
+    });
+  }
+  function switchTab(name) {
+    state.tab = name;
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+    ['pending','granted','rejected'].forEach(s => {
+      document.getElementById('section' + cap(s)).hidden = s !== name;
+    });
+  }
+  function cap(s){ return s[0].toUpperCase() + s.slice(1); }
+
+  async function loadAll() {
+    showError('');
+    try {
+      const { data: rows, error } = await window.sb
+        .from('feature_access')
+        .select('*')
+        .order('requested_at', { ascending: false });
+      if (error) throw error;
+      state.rows = rows || [];
+
+      // Fetch profiles for all unique user_ids and reviewer_ids
+      const uids = new Set();
+      state.rows.forEach(r => { uids.add(r.user_id); if (r.reviewed_by) uids.add(r.reviewed_by); });
+      if (uids.size) {
+        const { data: profiles, error: pErr } = await window.sb
+          .from('profiles').select('id, username').in('id', Array.from(uids));
+        if (pErr) throw pErr;
+        state.profilesByUid.clear();
+        (profiles || []).forEach(p => state.profilesByUid.set(p.id, p));
+      }
+
+      render();
+    } catch (e) {
+      console.error('[admin]', e);
+      showError(e.message || String(e));
+      ['listPending','listGranted','listRejected'].forEach(id => document.getElementById(id).innerHTML = '');
+    }
+  }
+
+  function render() {
+    const groups = { pending: [], granted: [], rejected: [] };
+    state.rows.forEach(r => { (groups[r.status] || []).push(r); });
+
+    document.getElementById('cntPending').textContent  = groups.pending.length;
+    document.getElementById('cntGranted').textContent  = groups.granted.length;
+    document.getElementById('cntRejected').textContent = groups.rejected.length;
+
+    renderList('listPending',  groups.pending,  'pending');
+    renderList('listGranted',  groups.granted,  'granted');
+    renderList('listRejected', groups.rejected, 'rejected');
+  }
+
+  function renderList(id, rows, kind) {
+    const root = document.getElementById(id);
+    if (rows.length === 0) {
+      root.innerHTML = emptyHTML(kind);
+      return;
+    }
+    root.innerHTML = '';
+    rows.forEach(r => root.appendChild(buildCard(r, kind)));
+  }
+
+  function emptyHTML(kind) {
+    const txt = {
+      pending:  ['Aucune demande en attente', 'Quand un user demandera l\'accès à une feature, ça apparaîtra ici.'],
+      granted:  ['Aucun accès accordé', 'Approuvez une demande pour qu\'elle apparaisse ici.'],
+      rejected: ['Aucun refus',          'Les demandes refusées apparaîtront ici.']
+    }[kind];
+    return `<div class="empty"><h3>${txt[0]}</h3><p>${txt[1]}</p></div>`;
+  }
+
+  function buildCard(r, kind) {
+    const userProf = state.profilesByUid.get(r.user_id);
+    const username = userProf?.username || r.user_id.slice(0,8);
+    const initial  = (username[0] || '?').toUpperCase();
+    const featureLbl = FEATURE_LABELS[r.feature_id] || r.feature_id;
+    const reviewerProf = r.reviewed_by ? state.profilesByUid.get(r.reviewed_by) : null;
+    const reviewer = reviewerProf?.username || (r.reviewed_by ? r.reviewed_by.slice(0,8) : null);
+
+    const card = document.createElement('div');
+    card.className = 'req-card';
+
+    let line, meta, actions;
+    if (kind === 'pending') {
+      line = `<strong>${esc(username)}</strong> demande l'accès à <span class="req-feature">${esc(featureLbl)}</span>`;
+      meta = `Demandé ${esc(relTime(r.requested_at))}`;
+      actions = `
+        <button class="btn approve" data-act="approve">✓ Approuver</button>
+        <button class="btn reject"  data-act="reject">✗ Refuser</button>
+      `;
+    } else if (kind === 'granted') {
+      line = `<strong>${esc(username)}</strong> a accès à <span class="req-feature">${esc(featureLbl)}</span>`;
+      meta = (reviewer ? `Accordé par ${esc(reviewer)} · ` : '') + esc(relTime(r.reviewed_at || r.requested_at));
+      actions = `<button class="btn revoke" data-act="revoke">Révoquer</button>`;
+    } else {
+      line = `<strong>${esc(username)}</strong> refusé pour <span class="req-feature">${esc(featureLbl)}</span>`;
+      meta = (reviewer ? `Refusé par ${esc(reviewer)} · ` : '') + esc(relTime(r.reviewed_at || r.requested_at));
+      actions = `<button class="btn regrant" data-act="regrant">Accorder</button>`;
+    }
+
+    card.innerHTML = `
+      <div class="req-avatar">${esc(initial)}</div>
+      <div class="req-main">
+        <div class="req-line">${line}</div>
+        <div class="req-meta">${meta}</div>
+      </div>
+      <div class="req-actions">${actions}</div>
+    `;
+    card.querySelectorAll('[data-act]').forEach(btn => {
+      btn.addEventListener('click', () => act(r, btn.dataset.act, btn));
+    });
+    return card;
+  }
+
+  async function act(row, action, btn) {
+    const map = {
+      approve: { status: 'granted',  confirm: null },
+      reject:  { status: 'rejected', confirm: null },
+      revoke:  { status: 'rejected', confirm: 'Révoquer l\'accès de cet utilisateur ?' },
+      regrant: { status: 'granted',  confirm: null }
+    };
+    const cfg = map[action];
+    if (!cfg) return;
+    if (cfg.confirm && !confirm(cfg.confirm)) return;
+
+    btn.disabled = true;
+    const orig = btn.textContent;
+    btn.textContent = '…';
+    try {
+      const { error } = await window.sb
+        .from('feature_access')
+        .update({ status: cfg.status })
+        .eq('user_id', row.user_id)
+        .eq('feature_id', row.feature_id);
+      if (error) throw error;
+
+      // Local update
+      row.status = cfg.status;
+      row.reviewed_at = new Date().toISOString();
+      row.reviewed_by = state.session.user.id;
+      render();
+    } catch (e) {
+      showError(e.message || String(e));
+      btn.disabled = false; btn.textContent = orig;
+    }
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('errorBox');
+    if (!msg) { box.style.display = 'none'; box.textContent = ''; return; }
+    box.style.display = 'block';
+    box.textContent = '⚠️ ' + msg;
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+  function relTime(d) {
+    if (!d) return '';
+    const t = new Date(d).getTime();
+    if (Number.isNaN(t)) return '';
+    const diff = (Date.now() - t) / 1000;
+    if (diff < 45)        return 'à l\'instant';
+    if (diff < 3600)      return `il y a ${Math.round(diff/60)} min`;
+    if (diff < 86400)     return `il y a ${Math.round(diff/3600)} h`;
+    if (diff < 2592000)   return `il y a ${Math.round(diff/86400)} j`;
+    if (diff < 31536000)  return `il y a ${Math.round(diff/2592000)} mois`;
+    return `il y a ${Math.round(diff/31536000)} ans`;
+  }
+})();
+</script>
+</body>
+</html>

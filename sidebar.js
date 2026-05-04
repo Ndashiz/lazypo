@@ -26,6 +26,7 @@
       icon: '✉️',
       label: 'Scope of Work',
       url: 'lazypo_generator.html',
+      locked: true,
       desc: 'Generate professional Scope of Work emails. Export as .eml ready for Outlook.'
     },
     {
@@ -33,6 +34,7 @@
       icon: '📋',
       label: 'Sprint Planning',
       url: 'sprintplanner.html',
+      locked: true,
       desc: 'Plan your sprints and auto-generate your presentation slides.'
     },
     {
@@ -40,6 +42,7 @@
       icon: '🎫',
       label: 'Jira',
       url: 'jirarepo.html',
+      locked: true,
       desc: 'Create and manage your Jira queries without leaving your workflow.'
     },
     {
@@ -47,6 +50,7 @@
       icon: '📝',
       label: 'LiveNote',
       url: 'livenote.html',
+      locked: true,
       desc: 'Éditeur collaboratif en temps réel — écrivez ensemble, instantanément.'
     },
     {
@@ -54,6 +58,7 @@
       icon: '📝',
       label: 'Minute Hub',
       url: null,
+      locked: true,
       desc: 'Centralise all your meeting notes in one click.'
     },
     {
@@ -69,6 +74,7 @@
       label: 'Focus FM',
       url: null,
       onClick: "window.FocusFM?.open()",
+      locked: true,
       desc: 'Spotify integration — play your playlists without leaving the app.'
     },
     { divider: true },
@@ -88,13 +94,12 @@
       desc: 'Manage your profile, avatar and password.'
     },
     {
-      id: 'docs',
-      icon: '📖',
-      label: 'Documentation',
-      url: 'docs/architecture.html',
-      newTab: true,
+      id: 'admin',
+      icon: '🛡️',
+      label: 'Admin',
+      url: 'admin.html',
       adminOnly: true,
-      desc: 'Architecture technique, schémas ER et flux système — admins uniquement.'
+      desc: 'Gérer les demandes d\'accès aux features et les utilisateurs.'
     }
   ];
 
@@ -343,16 +348,240 @@
     .sb-admin-only.sb-admin-visible .sb-item-link { color: #6b6b4a; }
     .sb-admin-only.sb-admin-visible:hover .sb-item-link { color: #fef3c7; }
     .sb-admin-only.sb-admin-visible:hover .sb-icon { background: rgba(251,191,36,.18); }
+
+    /* ── Locked feature : padlock icon + dimmed style ── */
+    .sb-item .sb-lock {
+      margin-left: auto; font-size: 12px; color: #5a5a5a; flex-shrink: 0;
+      opacity: 0; transition: opacity 0.18s ease 0.06s;
+    }
+    .sb:hover .sb-item .sb-lock { opacity: 1; }
+    .sb-item.sb-locked .sb-item-link { color: #4a4a4a; cursor: pointer; }
+    .sb-item.sb-locked .sb-icon { background: #1a1a1a; opacity: 0.55; }
+    .sb-item.sb-locked:hover .sb-item-link { color: #777; background: #181818; }
+    .sb-item.sb-locked .sb-lock-pending { color: #fbbf24; }
+    .sb-item.sb-locked .sb-lock-rejected { color: #f87171; }
+    .sb-item.sb-unlocked .sb-lock { display: none; }
+
+    /* ── Access request modal ── */
+    .sb-ar-overlay {
+      position: fixed; inset: 0; z-index: 9100;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s ease;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .sb-ar-overlay.open { opacity: 1; pointer-events: all; }
+    .sb-ar-modal {
+      background: #161616; border: 1px solid #2a2a2a;
+      border-radius: 16px; max-width: 420px; width: 100%;
+      padding: 28px 28px 22px;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+      transform: translateY(12px) scale(0.98);
+      transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .sb-ar-overlay.open .sb-ar-modal { transform: translateY(0) scale(1); }
+    .sb-ar-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.22);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 18px; font-size: 22px;
+    }
+    .sb-ar-title {
+      font-size: 17px; font-weight: 700; color: #f0f0f0;
+      text-align: center; margin-bottom: 8px;
+    }
+    .sb-ar-msg {
+      font-size: 13px; color: #6b6b6b; line-height: 1.6;
+      text-align: center; margin-bottom: 22px;
+    }
+    .sb-ar-msg strong { color: #f0f0f0; font-weight: 600; }
+    .sb-ar-actions { display: flex; gap: 10px; }
+    .sb-ar-btn {
+      flex: 1; padding: 11px 14px; border-radius: 10px;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: all 0.15s; border: 1px solid transparent;
+    }
+    .sb-ar-btn.cancel {
+      background: transparent; border-color: #2a2a2a; color: #f0f0f0;
+    }
+    .sb-ar-btn.cancel:hover { background: #1c1c1c; }
+    .sb-ar-btn.primary {
+      background: #3b82f6; color: #fff;
+    }
+    .sb-ar-btn.primary:hover { background: #2563eb; }
+    .sb-ar-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .sb-ar-status {
+      font-size: 12px; padding: 10px 14px; border-radius: 8px;
+      margin-bottom: 18px; line-height: 1.5;
+    }
+    .sb-ar-status.pending {
+      background: rgba(251,191,36,.10); border: 1px solid rgba(251,191,36,.25);
+      color: #fbbf24;
+    }
+    .sb-ar-status.rejected {
+      background: rgba(239,68,68,.10); border: 1px solid rgba(239,68,68,.25);
+      color: #f87171;
+    }
   `;
   document.head.appendChild(styleEl);
 
-  /* Show admin-only items once auth.js resolves the profile */
-  document.addEventListener('lazypo:profile', function (e) {
-    if (!e.detail?.isAdmin) return;
-    document.querySelectorAll('.sb-admin-only').forEach(el => {
-      el.classList.add('sb-admin-visible');
+  /* ─────────────────────────────────────────────────
+     ACCESS STATE — populated by auth.js after profile
+  ───────────────────────────────────────────────── */
+  // Map<feature_id, 'pending' | 'granted' | 'rejected'>
+  const featureAccess = new Map();
+  let isAdminUser = false;
+
+  function applyAccessToSidebar() {
+    document.querySelectorAll('[data-sb-id]').forEach(el => {
+      const id = el.dataset.sbId;
+      const item = ITEMS.find(i => i.id === id);
+      if (!item || !item.locked) return;
+
+      const status = isAdminUser ? 'granted' : (featureAccess.get(id) || null);
+      el.classList.toggle('sb-locked',   status !== 'granted');
+      el.classList.toggle('sb-unlocked', status === 'granted');
+
+      const lock = el.querySelector('.sb-lock');
+      if (lock) {
+        if (status === 'pending')      { lock.textContent = '⏳'; lock.className = 'sb-lock sb-lock-pending'; }
+        else if (status === 'rejected'){ lock.textContent = '🚫'; lock.className = 'sb-lock sb-lock-rejected'; }
+        else                           { lock.textContent = '🔒'; lock.className = 'sb-lock'; }
+      }
     });
+  }
+
+  /* Show admin-only items + apply lock state once auth.js resolves the profile */
+  document.addEventListener('lazypo:profile', function (e) {
+    isAdminUser = !!e.detail?.isAdmin;
+    if (isAdminUser) {
+      document.querySelectorAll('.sb-admin-only').forEach(el => el.classList.add('sb-admin-visible'));
+    }
+    applyAccessToSidebar();
   });
+
+  /* feature_access state from auth.js */
+  document.addEventListener('lazypo:feature-access', function (e) {
+    featureAccess.clear();
+    (e.detail?.rows || []).forEach(r => featureAccess.set(r.feature_id, r.status));
+    applyAccessToSidebar();
+  });
+
+  /* Initial pass — items default to locked until proven otherwise */
+  setTimeout(applyAccessToSidebar, 0);
+
+  /* ─────────────────────────────────────────────────
+     ACCESS REQUEST MODAL
+  ───────────────────────────────────────────────── */
+  function showAccessRequestModal(item) {
+    const status = featureAccess.get(item.id) || null;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'sb-ar-overlay';
+    const renderBody = () => {
+      let bodyHTML;
+      if (status === 'pending') {
+        bodyHTML = `
+          <div class="sb-ar-icon">⏳</div>
+          <div class="sb-ar-title">Demande en attente</div>
+          <div class="sb-ar-status pending">Votre demande d'accès à <strong>${escAttr(item.label)}</strong> a déjà été envoyée. Un admin va la traiter prochainement.</div>
+          <div class="sb-ar-actions">
+            <button class="sb-ar-btn primary" data-act="close">OK</button>
+          </div>`;
+      } else if (status === 'rejected') {
+        bodyHTML = `
+          <div class="sb-ar-icon" style="background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.25);">🚫</div>
+          <div class="sb-ar-title">Demande refusée</div>
+          <div class="sb-ar-status rejected">Votre demande d'accès à <strong>${escAttr(item.label)}</strong> a été refusée. Contactez un admin si vous pensez qu'il s'agit d'une erreur.</div>
+          <div class="sb-ar-actions">
+            <button class="sb-ar-btn cancel" data-act="close">Fermer</button>
+          </div>`;
+      } else {
+        bodyHTML = `
+          <div class="sb-ar-icon">🔒</div>
+          <div class="sb-ar-title">Accès restreint — ${escAttr(item.label)}</div>
+          <div class="sb-ar-msg">Vous n'avez pas encore accès à <strong>${escAttr(item.label)}</strong>.<br>Souhaitez-vous envoyer une demande à l'admin ?</div>
+          <div class="sb-ar-actions">
+            <button class="sb-ar-btn cancel"  data-act="close">Annuler</button>
+            <button class="sb-ar-btn primary" data-act="request">Demander l'accès</button>
+          </div>`;
+      }
+      overlay.innerHTML = `<div class="sb-ar-modal" role="dialog" aria-modal="true">${bodyHTML}</div>`;
+    };
+    renderBody();
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('open'));
+
+    function close() {
+      overlay.classList.remove('open');
+      setTimeout(() => overlay.remove(), 200);
+    }
+
+    overlay.addEventListener('click', async (e) => {
+      const act = e.target?.dataset?.act;
+      if (e.target === overlay || act === 'close') return close();
+      if (act === 'request') {
+        const btn = e.target;
+        btn.disabled = true; btn.textContent = 'Envoi…';
+        try {
+          if (!window.sb || !window.LazyAuth) throw new Error('Auth not ready');
+          let session = (await window.sb.auth.getSession()).data.session;
+          if (!session && window.LazyAuth.devSession) session = window.LazyAuth.devSession;
+          if (!session) throw new Error('Vous devez être connecté.');
+          const { error } = await window.sb.from('feature_access').insert({
+            user_id: session.user.id, feature_id: item.id, status: 'pending'
+          });
+          if (error) throw error;
+          featureAccess.set(item.id, 'pending');
+          applyAccessToSidebar();
+          // Show confirmation
+          overlay.querySelector('.sb-ar-modal').innerHTML = `
+            <div class="sb-ar-icon" style="background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.25);">✅</div>
+            <div class="sb-ar-title">Demande envoyée</div>
+            <div class="sb-ar-msg">Vous serez notifié quand l'admin l'aura traitée. Le cadenas restera affiché en attendant.</div>
+            <div class="sb-ar-actions">
+              <button class="sb-ar-btn primary" data-act="close">OK</button>
+            </div>`;
+        } catch (err) {
+          console.error('[access-request]', err);
+          btn.disabled = false; btn.textContent = 'Demander l\'accès';
+          alert(err.message || 'Erreur lors de la demande.');
+        }
+      }
+    });
+  }
+
+  function escAttr(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  /* Intercept clicks on locked items — must run BEFORE the SPA navigation
+     handler defined below. stopImmediatePropagation prevents that handler
+     from firing in the same capture-phase loop. */
+  function onLockedClick(e) {
+    const link = e.target.closest('.sb-item-link');
+    if (!link) return;
+    const itemEl = link.closest('[data-sb-id]');
+    if (!itemEl) return;
+    const id = itemEl.dataset.sbId;
+    const item = ITEMS.find(i => i.id === id);
+    if (!item || !item.locked) return;
+
+    const status = isAdminUser ? 'granted' : (featureAccess.get(id) || null);
+    if (status === 'granted') return; // allow normal nav
+
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    showAccessRequestModal(item);
+  }
+  document.addEventListener('click', onLockedClick, { capture: true });
+
+  /* Public API for pages to gate themselves */
+  window.LazySidebar = window.LazySidebar || {};
+  window.LazySidebar.hasFeatureAccess = (featureId) => {
+    if (isAdminUser) return true;
+    return featureAccess.get(featureId) === 'granted';
+  };
 
   /* ═══════════════════════════════════════════════════
      HTML BUILDER
@@ -362,18 +591,21 @@
 
     const active      = isActive(item) ? ' active' : '';
     const adminClass  = item.adminOnly ? ' sb-admin-only' : '';
+    const lockedClass = item.locked ? ' sb-locked' : '';
     const tag         = item.url ? 'a' : 'button';
     const hrefAttr    = item.url ? `href="${item.url}"` : 'type="button"';
     const targetAttr  = item.newTab ? 'target="_blank" rel="noopener"' : '';
     const clickAttr   = !item.url
       ? `onclick="${item.onClick || `window.showUnavailablePopup && window.showUnavailablePopup('${item.label}')`}"`
       : '';
+    const lockHTML    = item.locked ? `<span class="sb-lock" aria-label="locked">🔒</span>` : '';
 
     return `
-      <div class="sb-item${active}${adminClass}" data-sb-id="${item.id}">
+      <div class="sb-item${active}${adminClass}${lockedClass}" data-sb-id="${item.id}">
         <${tag} class="sb-item-link" ${hrefAttr} ${targetAttr} ${clickAttr}>
           <div class="sb-icon">${item.icon}</div>
           <span class="sb-label">${item.label}</span>
+          ${lockHTML}
         </${tag}>
         <div class="sb-desc">${item.desc}</div>
       </div>`;

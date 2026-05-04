@@ -250,6 +250,21 @@
       detail: { isAdmin, username, email, avatar }
     }));
 
+    /* Fetch feature_access rows for the current user and broadcast */
+    let accessRows = [];
+    if (!session.__dev) {
+      try {
+        const { data } = await window.sb
+          .from('feature_access')
+          .select('feature_id, status')
+          .eq('user_id', session.user.id);
+        accessRows = data || [];
+      } catch (_) {}
+    }
+    document.dispatchEvent(new CustomEvent('lazypo:feature-access', {
+      detail: { rows: accessRows }
+    }));
+
     footer.innerHTML = `
       <div class="user-widget" id="authWidget">
         <button class="user-trigger" onclick="window.__authToggleMenu(event)">
