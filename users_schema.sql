@@ -120,19 +120,19 @@ declare
 begin
   meta_username := nullif(trim(coalesce(new.raw_user_meta_data->>'username', '')), '');
 
-  -- Crée la ligne profile si absente (defaults : allowed_modules = ['quiz'])
-  -- Le username vient des metadata si fourni au signup, sinon NULL (sera dérivé de l'email côté UI)
+  -- Create the profile row if missing (defaults: allowed_modules = ['quiz'])
+  -- Username comes from signUp metadata if provided, otherwise NULL.
   insert into public.profiles (id, username)
   values (new.id, meta_username)
   on conflict (id) do update
     set username = coalesce(public.profiles.username, excluded.username);
 
-  -- Notifie les admins
+  -- Notify admins (username only — never expose email in the notification text)
   insert into public.admin_notifications (type, title, body, link, related_user_id)
   values (
     'signup',
-    'Nouvel utilisateur',
-    coalesce(meta_username || ' (' || new.email || ')', new.email, 'Un utilisateur') || ' vient de s''inscrire sur LazyPO.',
+    'New user',
+    coalesce(meta_username, 'A user') || ' just signed up on LazyPO.',
     'admin.html',
     new.id
   );
@@ -156,19 +156,20 @@ security definer
 set search_path = public
 as $$
 declare
-  email_addr text;
+  uname text;
 begin
   if new.status <> 'pending' then
     return new;
   end if;
 
-  select email into email_addr from auth.users where id = new.user_id;
+  -- Use the public username only — never expose the email address here.
+  select username into uname from public.profiles where id = new.user_id;
 
   insert into public.admin_notifications (type, title, body, link, related_user_id)
   values (
     'access_request',
-    'Demande d''accès module',
-    coalesce(email_addr, 'Un utilisateur') || ' demande l''accès à « ' || new.module_id || ' ».',
+    'Module access request',
+    coalesce(uname, 'A user') || ' is requesting access to "' || new.module_id || '".',
     'admin.html',
     new.user_id
   );

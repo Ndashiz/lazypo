@@ -10,7 +10,7 @@
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LazyPO — Admin</title>
+<title>LazyPO — Admin console</title>
 <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -233,36 +233,36 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
   <div class="page-header">
     <div>
       <div class="page-title">Admin</div>
-      <div class="page-heading">Console d'administration</div>
+      <div class="page-heading">Admin console</div>
     </div>
   </div>
 
   <div class="page-body">
     <div class="tabs">
       <button class="tab active" data-tab="notifs">Notifications <span class="tab-count" id="cntNotifs">0</span></button>
-      <button class="tab"        data-tab="reqs">Demandes d'accès <span class="tab-count" id="cntReqs">0</span></button>
-      <button class="tab"        data-tab="users">Utilisateurs</button>
+      <button class="tab"        data-tab="reqs">Access requests <span class="tab-count" id="cntReqs">0</span></button>
+      <button class="tab"        data-tab="users">Users</button>
     </div>
 
     <!-- ─ Notifications ─ -->
     <section class="section" id="tab-notifs">
       <h3>
-        Notifications récentes
-        <button class="h3-action" id="btnMarkAll">Tout marquer comme lu</button>
+        Recent notifications
+        <button class="h3-action" id="btnMarkAll">Mark all as read</button>
       </h3>
       <div class="notif-list" id="notifList"></div>
     </section>
 
     <!-- ─ Access requests ─ -->
     <section class="section" id="tab-reqs" style="display:none">
-      <h3>Demandes d'accès en attente</h3>
+      <h3>Pending access requests</h3>
       <div class="req-list" id="reqList"></div>
     </section>
 
     <!-- ─ Users ─ -->
     <section class="section" id="tab-users" style="display:none">
-      <h3>Utilisateurs</h3>
-      <input type="text" class="search" id="userSearch" placeholder="Rechercher par email ou pseudo…">
+      <h3>Users</h3>
+      <input type="text" class="search" id="userSearch" placeholder="Search by username…">
       <div class="user-list" id="userList"></div>
     </section>
   </div>
@@ -274,7 +274,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 <script src="auth.js"></script>
 <script>
 /* ─────────────────────────────────────────────────────────
-   Admin console — nécessite is_admin = true
+   Admin console — requires is_admin = true
 ───────────────────────────────────────────────────────── */
 const ALL_MODULES = ['quiz','scope','sprint','jira','livenote','minutehub','focusfm'];
 const MODULE_LABELS = {
@@ -291,15 +291,15 @@ async function init() {
   const session = await LazyAuth.requireAuth();
   if (!session) return;
 
-  // Vérifie que l'utilisateur est admin avant de charger quoi que ce soit
+  // Make sure the user is admin before loading anything
   let profile = null;
   try { profile = await LazyAuth.getProfile(session.user.id); } catch(_){}
   if (!profile?.is_admin && !session.__dev) {
     document.querySelector('.page-body').innerHTML = `
       <div class="section" style="text-align:center;padding:48px 24px;">
         <div style="font-size:32px;margin-bottom:14px;">🔒</div>
-        <div style="font-size:16px;font-weight:600;margin-bottom:8px;">Accès refusé</div>
-        <div style="color:var(--muted);font-size:13px;">Cette page est réservée aux administrateurs.</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:8px;">Access denied</div>
+        <div style="color:var(--muted);font-size:13px;">This page is reserved for administrators.</div>
       </div>`;
     return;
   }
@@ -340,7 +340,7 @@ function renderNotifs() {
   const list = document.getElementById('notifList');
   const unread = cache.notifs.filter(n => !n.is_read).length;
   document.getElementById('cntNotifs').textContent = unread;
-  if (!cache.notifs.length) { list.innerHTML = '<div class="empty">Aucune notification.</div>'; return; }
+  if (!cache.notifs.length) { list.innerHTML = '<div class="empty">No notifications.</div>'; return; }
   list.innerHTML = cache.notifs.map(n => `
     <div class="notif ${n.is_read ? '' : 'unread'}" data-id="${n.id}">
       <div class="notif-icon ${esc(n.type)}">${iconFor(n.type)}</div>
@@ -350,7 +350,7 @@ function renderNotifs() {
         <div class="notif-date">${fmtDate(n.created_at)}</div>
       </div>
       <div class="notif-actions">
-        ${n.is_read ? '' : `<button class="btn-mark" onclick="markRead('${n.id}')">Marquer lu</button>`}
+        ${n.is_read ? '' : `<button class="btn-mark" onclick="markRead('${n.id}')">Mark read</button>`}
       </div>
     </div>
   `).join('');
@@ -386,7 +386,7 @@ async function loadRequests() {
   if (error) { console.error(error); return; }
   cache.requests = data || [];
 
-  // Hydrate emails
+  // Hydrate usernames
   const ids = [...new Set(cache.requests.map(r => r.user_id))];
   if (ids.length) {
     const { data: profs } = await window.sb
@@ -400,20 +400,20 @@ async function loadRequests() {
 function renderRequests() {
   const list = document.getElementById('reqList');
   document.getElementById('cntReqs').textContent = cache.requests.length;
-  if (!cache.requests.length) { list.innerHTML = '<div class="empty">Aucune demande en attente.</div>'; return; }
+  if (!cache.requests.length) { list.innerHTML = '<div class="empty">No pending requests.</div>'; return; }
   list.innerHTML = cache.requests.map(r => `
     <div class="req" data-id="${r.id}">
       <div class="req-info">
         <div class="req-row1">
-          <span class="req-email">${esc(r._profile?.username || 'Utilisateur')}</span>
+          <span class="req-email">${esc(r._profile?.username || 'User')}</span>
           <span class="req-module-pill">${esc(MODULE_LABELS[r.module_id] || r.module_id)}</span>
         </div>
-        ${r.message ? `<div class="req-message">« ${esc(r.message)} »</div>` : ''}
+        ${r.message ? `<div class="req-message">"${esc(r.message)}"</div>` : ''}
         <div class="req-date">${fmtDate(r.created_at)}</div>
       </div>
       <div class="req-actions">
-        <button class="btn-approve" onclick="approveRequest('${r.id}')">✓ Approuver</button>
-        <button class="btn-reject"  onclick="rejectRequest('${r.id}')">Refuser</button>
+        <button class="btn-approve" onclick="approveRequest('${r.id}')">✓ Approve</button>
+        <button class="btn-reject"  onclick="rejectRequest('${r.id}')">Reject</button>
       </div>
     </div>
   `).join('');
@@ -422,7 +422,7 @@ function renderRequests() {
 async function approveRequest(id) {
   const { error } = await window.sb.rpc('approve_access_request', { req_id: id });
   if (error) return toast(error.message, 'error');
-  toast('Accès accordé.');
+  toast('Access granted.');
   cache.requests = cache.requests.filter(r => r.id !== id);
   renderRequests();
   await loadUsers(); // reflect new allowed_modules
@@ -431,7 +431,7 @@ async function approveRequest(id) {
 async function rejectRequest(id) {
   const { error } = await window.sb.rpc('reject_access_request', { req_id: id });
   if (error) return toast(error.message, 'error');
-  toast('Demande refusée.');
+  toast('Request rejected.');
   cache.requests = cache.requests.filter(r => r.id !== id);
   renderRequests();
 }
@@ -453,7 +453,7 @@ function renderUsers() {
   const filtered = !q ? cache.users : cache.users.filter(u =>
     (u.username || '').toLowerCase().includes(q)
   );
-  if (!filtered.length) { list.innerHTML = '<div class="empty">Aucun utilisateur.</div>'; return; }
+  if (!filtered.length) { list.innerHTML = '<div class="empty">No users.</div>'; return; }
   list.innerHTML = filtered.map(u => {
     const modules = new Set(u.allowed_modules || []);
     const initial = (u.username || '?')[0].toUpperCase();
@@ -481,7 +481,7 @@ function renderUsers() {
         <div class="user-admin-row">
           <input type="checkbox" id="adm_${u.id}" ${u.is_admin ? 'checked' : ''}
                  onchange="toggleAdmin('${u.id}', this.checked)">
-          <label for="adm_${u.id}">Administrateur</label>
+          <label for="adm_${u.id}">Administrator</label>
         </div>
       </div>`;
   }).join('');
@@ -507,14 +507,14 @@ async function toggleAdmin(userId, isAdmin) {
   if (error) { toast(error.message, 'error'); renderUsers(); return; }
   const u = cache.users.find(x => x.id === userId);
   if (u) u.is_admin = isAdmin;
-  toast(isAdmin ? 'Promu administrateur.' : 'Rôle admin retiré.');
+  toast(isAdmin ? 'Promoted to administrator.' : 'Admin role revoked.');
 }
 
 /* ─── Helpers ─── */
 function fmtDate(iso) {
   const d = new Date(iso);
-  return d.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
-       + ' · ' + d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+       + ' · ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function toast(msg, kind='success') {
