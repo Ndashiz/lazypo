@@ -676,22 +676,56 @@
 
   /* ════════════════════════ ADMIN ════════════════════════ */
   async function adminSave(fb) {
+    const btn = document.getElementById('adminSave');
     const newStatus = document.getElementById('adminStatus').value;
     const reason = document.getElementById('adminReason').value.trim();
     if (newStatus === 'refused' && !reason) {
       window.LazyFeedback.showToast('Refusal reason is required.', { error: true });
       return;
     }
+    if (btn) {
+      if (btn.dataset.busy === '1') return; // already saving
+      btn.dataset.busy = '1';
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+    }
     const payload = { status: newStatus };
     payload.refusal_reason = newStatus === 'refused' ? reason : null;
-    const { data, error } = await window.sb.from('feedback').update(payload).eq('id', fb.id).select('*').single();
-    if (error) { window.LazyFeedback.showToast(error.message, { error: true }); return; }
-    Object.assign(fb, data);
-    state.detailFeedback = fb;
-    renderDetail(fb);
-    renderDetailComments();
-    render();
-    window.LazyFeedback.showToast('Updated.');
+    try {
+      const { data, error } = await window.sb.from('feedback')
+        .update(payload).eq('id', fb.id).select('*').single();
+      if (error) {
+        console.error('[feedback] adminSave update error:', error, 'payload:', payload, 'fb.id:', fb.id);
+        window.LazyFeedback.showToast(
+          (error.code ? `[${error.code}] ` : '') + (error.message || 'Update failed.'),
+          { error: true }
+        );
+        return;
+      }
+      if (!data) {
+        console.error('[feedback] adminSave: no row returned (RLS or missing id?)', { fbId: fb.id, payload });
+        window.LazyFeedback.showToast('Update silently failed — no row returned (RLS?).', { error: true });
+        return;
+      }
+      Object.assign(fb, data);
+      state.detailFeedback = fb;
+      renderDetail(fb);
+      renderDetailComments();
+      render();
+      window.LazyFeedback.showToast('Updated.');
+    } catch (e) {
+      console.error('[feedback] adminSave threw:', e);
+      window.LazyFeedback.showToast(e?.message || 'Unexpected error.', { error: true });
+    } finally {
+      // The original button is gone after renderDetail(), but if we returned
+      // before re-rendering (error path), the same button is still around.
+      const stillThere = document.getElementById('adminSave');
+      if (stillThere) {
+        stillThere.dataset.busy = '';
+        stillThere.disabled = false;
+        stillThere.textContent = 'Save';
+      }
+    }
   }
 
   /* ════════════════════════ DnD HANDLERS ════════════════════════ */
@@ -768,12 +802,34 @@
   async function updateFeedbackStatus(fb, status, refusal_reason = null) {
     const payload = { status };
     payload.refusal_reason = status === 'refused' ? refusal_reason : null;
-    const { data, error } = await window.sb.from('feedback').update(payload).eq('id', fb.id).select('*').single();
-    if (error) { window.LazyFeedback.showToast(error.message, { error: true }); return; }
-    Object.assign(fb, data);
-    if (state.detailFeedback?.id === fb.id) { state.detailFeedback = fb; renderDetail(fb); renderDetailComments(); }
-    render();
-    window.LazyFeedback.showToast(`Moved to ${window.LazyFeedback.statusLabel(status)}.`);
+    try {
+      const { data, error } = await window.sb.from('feedback')
+        .update(payload).eq('id', fb.id).select('*').single();
+      if (error) {
+        console.error('[feedback] updateFeedbackStatus error:', error, 'payload:', payload, 'fb.id:', fb.id);
+        window.LazyFeedback.showToast(
+          (error.code ? `[${error.code}] ` : '') + (error.message || 'Status update failed.'),
+          { error: true }
+        );
+        return;
+      }
+      if (!data) {
+        console.error('[feedback] updateFeedbackStatus: no row returned', { fbId: fb.id, payload });
+        window.LazyFeedback.showToast('Status update silently failed — no row returned (RLS?).', { error: true });
+        return;
+      }
+      Object.assign(fb, data);
+      if (state.detailFeedback?.id === fb.id) {
+        state.detailFeedback = fb;
+        renderDetail(fb);
+        renderDetailComments();
+      }
+      render();
+      window.LazyFeedback.showToast(`Moved to ${window.LazyFeedback.statusLabel(status)}.`);
+    } catch (e) {
+      console.error('[feedback] updateFeedbackStatus threw:', e);
+      window.LazyFeedback.showToast(e?.message || 'Unexpected error.', { error: true });
+    }
   }
 
   /* ════════════════════════ Lightbox ════════════════════════ */
