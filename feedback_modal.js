@@ -499,6 +499,9 @@
         }
 
         showToast(isEdit ? 'Request updated!' : '🎉 Request published!');
+        // Release the busy lock BEFORE close() — otherwise close() returns
+        // early because of `if (busy) return;` and the modal stays open.
+        busy = false;
         close();
 
         if (typeof opts.onSubmitted === 'function') opts.onSubmitted(row);
