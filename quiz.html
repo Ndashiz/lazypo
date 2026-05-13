@@ -4516,6 +4516,7 @@ document.getElementById('btn-start-quiz').addEventListener('click', () => {
   document.getElementById('quiz-setup').style.display   = 'none';
   document.getElementById('quiz-active').style.display  = 'block';
   document.getElementById('quiz-summary').style.display = 'none';
+  document.getElementById('quiz-review').style.display  = 'none';
   showQuestion();
 });
 
@@ -5309,6 +5310,7 @@ function switchTab(tabId) {
     if (document.getElementById('quiz-active').style.display !== 'block') {
       document.getElementById('quiz-setup').style.display   = 'block';
       document.getElementById('quiz-summary').style.display = 'none';
+      document.getElementById('quiz-review').style.display  = 'none';
     }
   }
   if (tabId === 'verbes') {
@@ -6921,6 +6923,7 @@ function launchChallengeQuiz(wordSnapshots, wordIdsFallback, originalMeta = null
   document.getElementById('quiz-active').style.display  = 'block';
   document.getElementById('quiz-summary').style.display = 'none';
   document.getElementById('quiz-challenge-summary').style.display = 'none';
+  document.getElementById('quiz-review').style.display  = 'none';
   showQuestion();
   showToast(originalMeta
     ? `🎯 Challenge contre ${originalMeta.originalName} lancé !`
