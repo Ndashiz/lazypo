@@ -63,8 +63,23 @@
   }
 
   /* ── Activity tracking ──────────────────────────────────────────── */
+
+  /* Defense-in-depth : avant de reset le timer d'inactivité sur une
+     interaction utilisateur, on vérifie si la dernière activité connue
+     date de plus de INACTIVITY_TIMEOUT. Si oui, ça veut dire que la
+     personne revient APRÈS une longue absence — le browser a peut-être
+     gelé les timers (Safari BFCache, écran verrouillé, app en bg, etc.)
+     donc le heartbeat n'a pas pu déclencher le logout automatiquement.
+     On force le logout MAINTENANT, avant que le mousemove de "réveil"
+     n'écrase le timestamp et masque l'inactivité. */
   function onActivity() {
-    lastActivity = Date.now();
+    const now = Date.now();
+    const previous = readPersistedActivity();
+    if (previous > 0 && now - previous >= INACTIVITY_TIMEOUT && !isMusicPlaying()) {
+      forceLogout('inactivity_resume');
+      return;
+    }
+    lastActivity = now;
     persistActivity(lastActivity);
     hideWarning();
   }
@@ -88,6 +103,24 @@
     }
     // Pas de mise à jour de lastActivity : seule une VRAIE interaction
     // (souris, clavier, scroll, click) compte comme reset.
+  });
+
+  /* Safari BFCache (back-forward cache) : quand l'utilisateur navigue
+     hors de LazyPO puis revient via "back", Safari restaure la page
+     entière depuis le cache mémoire — JS, timers et closures sont gelés
+     pendant l'absence et `visibilitychange` n'est PAS garanti de firer
+     au retour. L'event `pageshow` avec `event.persisted === true` est
+     l'indicateur fiable d'un restore BFCache. Idem pour le retour de
+     veille système prolongée où Safari peut suspendre setInterval. */
+  window.addEventListener('pageshow', (e) => {
+    // e.persisted = true → page restored from BFCache
+    // On vérifie systématiquement, qu'on soit BFCache ou load normal :
+    // les deux cas peuvent avoir un timestamp persisté en retard.
+    if (isMusicPlaying()) return;
+    const reference = readPersistedActivity() || lastActivity;
+    if (reference > 0 && Date.now() - reference >= INACTIVITY_TIMEOUT) {
+      forceLogout(e.persisted ? 'inactivity_bfcache' : 'inactivity_pageshow');
+    }
   });
 
   /* ── Music detection ────────────────────────────────────────────── */
