@@ -749,6 +749,8 @@
     };
   }
 
+  let lastSyncError = null;
+
   async function pullRemote(){
     if (!currentUserId || !window.sb) return null;
     try {
@@ -756,9 +758,17 @@
         .from('jira_queries')
         .select('*')
         .eq('user_id', currentUserId);
-      if (error) { console.warn('[jira sync] pull failed', error); return null; }
+      if (error) {
+        console.warn('[jira sync] pull failed', error);
+        lastSyncError = `pull: ${error.message || error.code || 'unknown'}`;
+        return null;
+      }
       return data.map(fromRemoteRow);
-    } catch (e) { console.warn('[jira sync] pull error', e); return null; }
+    } catch (e) {
+      console.warn('[jira sync] pull error', e);
+      lastSyncError = `pull exception: ${e?.message || e}`;
+      return null;
+    }
   }
 
   async function pushUpsert(q){
@@ -767,12 +777,20 @@
       const { error } = await window.sb
         .from('jira_queries')
         .upsert(toRemoteRow(q, currentUserId), { onConflict: 'id' });
-      if (error) { console.warn('[jira sync] upsert failed', error); return; }
+      if (error) {
+        console.warn('[jira sync] upsert failed', error);
+        lastSyncError = `upsert: ${error.message || error.code || 'unknown'}`;
+        setSyncStatus('error', error.message || error.code || 'upsert failed');
+        return;
+      }
       // Mark as synced in localStorage (no UI re-render needed)
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
       const i = raw.findIndex(x => x.id === q.id);
       if (i >= 0) { raw[i]._synced = true; localStorage.setItem(STORAGE_KEY, JSON.stringify(raw)); }
-    } catch (e) { console.warn('[jira sync] upsert error', e); }
+    } catch (e) {
+      console.warn('[jira sync] upsert error', e);
+      lastSyncError = `upsert exception: ${e?.message || e}`;
+    }
   }
 
   async function pushDelete(id){
@@ -783,8 +801,14 @@
         .delete()
         .eq('id', id)
         .eq('user_id', currentUserId);
-      if (error) console.warn('[jira sync] delete failed', error);
-    } catch (e) { console.warn('[jira sync] delete error', e); }
+      if (error) {
+        console.warn('[jira sync] delete failed', error);
+        lastSyncError = `delete: ${error.message || error.code || 'unknown'}`;
+      }
+    } catch (e) {
+      console.warn('[jira sync] delete error', e);
+      lastSyncError = `delete exception: ${e?.message || e}`;
+    }
   }
 
   // The single source of truth for sync. Bulletproof:
@@ -814,7 +838,7 @@
       // 2. Pull canonical state from Supabase.
       const remote = await pullRemote();
       if (remote === null) {
-        setSyncStatus('error');
+        setSyncStatus('error', lastSyncError || 'pull failed');
         return false;
       }
 
@@ -831,10 +855,12 @@
             .upsert(rows, { onConflict: 'id' });
           if (error) {
             console.warn('[jira sync] reconcile upsert failed', error);
+            lastSyncError = `upsert: ${error.message || error.code || 'unknown'}`;
             pushHadError = true;
           } else for (const q of unsynced) pushedOk.add(q.id);
         } catch (e) {
           console.warn('[jira sync] reconcile upsert error', e);
+          lastSyncError = `upsert exception: ${e?.message || e}`;
           pushHadError = true;
         }
       }
@@ -854,11 +880,17 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify(finalState));
       if (!isDemoActive()) loadQueries();
       lastSyncedAt = Date.now();
-      setSyncStatus(pushHadError ? 'error' : 'synced', timeAgo(lastSyncedAt));
-      return true;
+      if (pushHadError) {
+        setSyncStatus('error', lastSyncError || 'push failed');
+      } else {
+        lastSyncError = null;
+        setSyncStatus('synced', timeAgo(lastSyncedAt));
+      }
+      return !pushHadError;
     } catch (e) {
       console.warn('[jira sync] reconcile error', e);
-      setSyncStatus('error');
+      lastSyncError = `reconcile exception: ${e?.message || e}`;
+      setSyncStatus('error', lastSyncError);
       return false;
     } finally {
       reconcileInFlight = false;
@@ -915,8 +947,15 @@
   async function onSessionReady(uid){
     if (uid === currentUserId) return; // already bootstrapped for this user
     currentUserId = uid;
+    console.log('[jira sync] session ready for user', uid);
     setSyncStatus('syncing');
-    await reconcile();
+    const ok = await reconcile();
+    // If first reconcile failed (often auth-not-ready race), refresh session and retry once
+    if (!ok) {
+      console.log('[jira sync] first reconcile failed, refreshing session and retrying in 1.5s');
+      try { await window.sb.auth.refreshSession(); } catch (e) { console.warn('[jira sync] refreshSession failed', e); }
+      setTimeout(() => reconcile(), 1500);
+    }
     subscribeRealtime();
     startPolling();
   }
@@ -949,16 +988,62 @@
     }
   }
 
-  // Manual refresh — exposed for the sync pill onclick
-  window.manualSync = function(){
+  // Manual refresh — exposed for the sync pill onclick. Force-refreshes the
+  // session before reconciling so stale JWTs get rotated.
+  window.manualSync = async function(){
+    setSyncStatus('syncing');
+    if (window.sb) {
+      try { await window.sb.auth.refreshSession(); }
+      catch (e) { console.warn('[jira sync] manual refreshSession failed', e); }
+    }
     if (!currentUserId) {
-      // Try to re-bootstrap auth in case it never completed
       bootstrapSync();
       return;
     }
-    reconcile();
-    // Also re-check realtime
+    await reconcile();
     if (realtimeState !== 'subscribed') subscribeRealtime();
+  };
+
+  // Diagnostic helper — run `jiraSyncDebug()` in the console for a full status dump.
+  window.jiraSyncDebug = async function(){
+    const out = {
+      ts: new Date().toISOString(),
+      hasSb: !!window.sb,
+      currentUserId,
+      realtimeState,
+      lastSyncedAt: lastSyncedAt ? new Date(lastSyncedAt).toISOString() : null,
+      lastSyncError,
+      reconcileInFlight,
+      pillState: document.getElementById('syncStatus')?.dataset?.state,
+    };
+    if (window.sb) {
+      try {
+        const s = await window.sb.auth.getSession();
+        out.session = s.data.session ? {
+          user_id: s.data.session.user.id,
+          email: s.data.session.user.email,
+          expires_at: s.data.session.expires_at,
+          token_starts_with: s.data.session.access_token?.slice(0, 12),
+        } : null;
+      } catch (e) { out.sessionError = String(e); }
+      if (currentUserId) {
+        try {
+          const r = await window.sb.from('jira_queries').select('id, name, user_id, created_at').eq('user_id', currentUserId);
+          out.pullTest = r.error ? { error: r.error } : { count: r.data?.length, sample: r.data?.slice(0,3) };
+        } catch (e) { out.pullTestError = String(e); }
+        try {
+          const r = await window.sb.from('jira_queries').select('id, name, user_id').limit(5);
+          out.pullAllTest = r.error ? { error: r.error } : { count: r.data?.length, sample: r.data?.slice(0,3) };
+        } catch (e) { out.pullAllError = String(e); }
+      }
+    }
+    const local = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    out.localCount = local.length;
+    out.localSample = local.slice(0,3).map(q => ({ id: q.id, name: q.name, _synced: q._synced, copyCount: q.copyCount }));
+    console.log('━━━━━ jiraSyncDebug ━━━━━');
+    console.log(JSON.stringify(out, null, 2));
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━');
+    return out;
   };
 
   // Safety net: re-reconcile + verify realtime when tab regains focus
