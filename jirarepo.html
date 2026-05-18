@@ -35,6 +35,17 @@
     .status-pill{background:rgba(16,185,129,.15);color:var(--green-pale);font-size:13px;font-weight:500;padding:5px 14px;border-radius:20px;white-space:nowrap;opacity:0;transform:translateY(-4px);transition:opacity .3s,transform .3s;pointer-events:none}
     .status-pill.show{opacity:1;transform:translateY(0)}
 
+    /* Sync state pill — persistent, clickable to force a manual sync */
+    .sync-pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500;padding:5px 12px;border-radius:20px;cursor:pointer;border:1px solid transparent;transition:background .2s,border-color .2s,filter .2s;font-family:'DM Mono',monospace;white-space:nowrap;user-select:none}
+    .sync-pill:hover{filter:brightness(1.18)}
+    .sync-pill[data-state="syncing"]{background:rgba(96,165,250,.15);color:var(--blue-pale);border-color:rgba(96,165,250,.3)}
+    .sync-pill[data-state="synced"]{background:rgba(52,211,153,.12);color:var(--green-pale);border-color:rgba(52,211,153,.25)}
+    .sync-pill[data-state="error"]{background:rgba(248,113,113,.12);color:var(--red-light);border-color:rgba(248,113,113,.3)}
+    .sync-pill[data-state="offline"]{background:rgba(148,163,184,.12);color:var(--text-muted);border-color:var(--card-border)}
+    .sync-pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+    .sync-pill[data-state="syncing"] .dot{animation:syncSpin 1s linear infinite}
+    @keyframes syncSpin{0%{transform:scale(.6);opacity:.4}50%{transform:scale(1);opacity:1}100%{transform:scale(.6);opacity:.4}}
+
     .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;border:none;cursor:pointer;white-space:nowrap;transition:background .2s,border-color .2s,transform .1s;line-height:1;font-family:inherit}
     .btn-primary{background:var(--blue);color:#fff;border:1px solid transparent}
     .btn-primary:hover{background:#2563eb}
@@ -165,6 +176,9 @@
   <div class="spacer"></div>
   <div class="header-actions">
     <div id="status" class="status-pill">Saved</div>
+    <span id="syncStatus" class="sync-pill" data-state="offline" title="Click to sync now" onclick="manualSync()" style="display:none">
+      <span class="dot"></span><span id="syncStatusText">Offline</span>
+    </span>
     <button class="btn btn-ghost" onclick="focusForm()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
       New query
@@ -645,12 +659,53 @@
   }
 
   // ═══════════════════════════════════════════════════════════
-  //  Supabase sync (realtime + bulletproof reconcile)
+  //  Supabase sync — bootstrap via onAuthStateChange + realtime
+  //  + polling fallback + resubscribe-on-error + visible status
   // ═══════════════════════════════════════════════════════════
+  const POLL_INTERVAL_MS = 8000;
   let currentUserId = null;
   let realtimeChannel = null;
+  let realtimeState = 'idle'; // idle | subscribing | subscribed | error
   let pullDebounce = null;
   let reconcileInFlight = false;
+  let pollIntervalId = null;
+  let lastSyncedAt = null;
+  let resubscribeTimer = null;
+
+  function setSyncStatus(state, detail){
+    const pill = document.getElementById('syncStatus');
+    const textEl = document.getElementById('syncStatusText');
+    if (!pill || !textEl) return;
+    pill.dataset.state = state;
+    pill.style.display = 'inline-flex';
+    const labels = {
+      syncing: 'Syncing…',
+      synced:  'Synced',
+      error:   'Sync error',
+      offline: 'Offline',
+    };
+    textEl.textContent = (labels[state] || state) + (detail ? ' · ' + detail : '');
+    pill.title = state === 'error'
+      ? 'Sync failed — click to retry'
+      : 'Click to sync now';
+  }
+
+  function timeAgo(ts){
+    if (!ts) return '';
+    const s = Math.max(0, Math.round((Date.now() - ts) / 1000));
+    if (s < 5) return 'just now';
+    if (s < 60) return s + 's ago';
+    const m = Math.round(s / 60);
+    if (m < 60) return m + 'm ago';
+    return Math.round(m / 60) + 'h ago';
+  }
+
+  function refreshSyncStatusLabel(){
+    if (!currentUserId) { setSyncStatus('offline'); return; }
+    if (reconcileInFlight) return;
+    if (lastSyncedAt) setSyncStatus('synced', timeAgo(lastSyncedAt));
+  }
+  setInterval(refreshSyncStatusLabel, 5000);
 
   function readLocal(){
     const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -742,8 +797,9 @@
   //    (pending push, e.g. transient network error). Will retry next reconcile.
   //  • Empty remote with un-pushed local data NEVER causes a wipe.
   async function reconcile(){
-    if (!currentUserId || !window.sb || reconcileInFlight) return;
+    if (!currentUserId || !window.sb || reconcileInFlight) return false;
     reconcileInFlight = true;
+    setSyncStatus('syncing');
     try {
       // 1. Assign IDs and createdAt to any legacy local queries (force them
       //    to be unsynced so they get pushed up).
@@ -757,21 +813,30 @@
 
       // 2. Pull canonical state from Supabase.
       const remote = await pullRemote();
-      if (remote === null) return; // pull failed — leave local untouched
+      if (remote === null) {
+        setSyncStatus('error');
+        return false;
+      }
 
       // 3. Push up any unsynced local queries.
       const local = rawLocal.map(normalize);
       const unsynced = local.filter(q => q._synced === false);
       const pushedOk = new Set();
+      let pushHadError = false;
       if (unsynced.length > 0) {
         const rows = unsynced.map(q => toRemoteRow(q, currentUserId));
         try {
           const { error } = await window.sb
             .from('jira_queries')
             .upsert(rows, { onConflict: 'id' });
-          if (error) console.warn('[jira sync] reconcile upsert failed', error);
-          else for (const q of unsynced) pushedOk.add(q.id);
-        } catch (e) { console.warn('[jira sync] reconcile upsert error', e); }
+          if (error) {
+            console.warn('[jira sync] reconcile upsert failed', error);
+            pushHadError = true;
+          } else for (const q of unsynced) pushedOk.add(q.id);
+        } catch (e) {
+          console.warn('[jira sync] reconcile upsert error', e);
+          pushHadError = true;
+        }
       }
 
       // 4. Build the final state:
@@ -781,16 +846,20 @@
       const remoteIds = new Set(remote.map(r => r.id));
       const finalState = remote.map(r => ({ ...r, _synced: true }));
       for (const q of unsynced) {
-        if (remoteIds.has(q.id)) continue; // already in remote, dedup
-        if (pushedOk.has(q.id)) {
-          finalState.push({ ...q, _synced: true });
-        } else {
-          finalState.push({ ...q, _synced: false }); // retry later
-        }
+        if (remoteIds.has(q.id)) continue;
+        if (pushedOk.has(q.id)) finalState.push({ ...q, _synced: true });
+        else finalState.push({ ...q, _synced: false });
       }
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(finalState));
       if (!isDemoActive()) loadQueries();
+      lastSyncedAt = Date.now();
+      setSyncStatus(pushHadError ? 'error' : 'synced', timeAgo(lastSyncedAt));
+      return true;
+    } catch (e) {
+      console.warn('[jira sync] reconcile error', e);
+      setSyncStatus('error');
+      return false;
     } finally {
       reconcileInFlight = false;
     }
@@ -801,37 +870,107 @@
     pullDebounce = setTimeout(reconcile, 250);
   }
 
+  function teardownRealtime(){
+    if (!realtimeChannel) return;
+    try { window.sb.removeChannel(realtimeChannel); }
+    catch (e) { console.warn('[jira sync] removeChannel error', e); }
+    realtimeChannel = null;
+    realtimeState = 'idle';
+  }
+
   function subscribeRealtime(){
-    if (!window.sb || !currentUserId || realtimeChannel) return;
+    if (!window.sb || !currentUserId) return;
+    teardownRealtime();
+    realtimeState = 'subscribing';
+    // Unique channel name per attempt — avoids "already subscribed" errors
     realtimeChannel = window.sb
-      .channel(`jira:${currentUserId}`)
+      .channel(`jira-${currentUserId}-${Date.now()}`)
       .on('postgres_changes',
         { event: '*', schema: 'public', table: 'jira_queries', filter: `user_id=eq.${currentUserId}` },
-        () => scheduleReconcile()
+        (payload) => {
+          console.log('[jira sync] realtime event', payload.eventType, payload.new?.id || payload.old?.id);
+          scheduleReconcile();
+        }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        console.log('[jira sync] realtime status:', status, err || '');
+        realtimeState = status === 'SUBSCRIBED' ? 'subscribed' : 'error';
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          // Retry after a delay
+          clearTimeout(resubscribeTimer);
+          resubscribeTimer = setTimeout(() => {
+            if (currentUserId) subscribeRealtime();
+          }, 3000);
+        }
+      });
   }
 
-  async function initSync(){
-    loadQueries();
-    if (!window.sb) return;
-    currentUserId = await getUserId();
-    if (!currentUserId) return;
+  function startPolling(){
+    if (pollIntervalId) return;
+    pollIntervalId = setInterval(() => {
+      if (currentUserId && !isDemoActive() && !document.hidden) reconcile();
+    }, POLL_INTERVAL_MS);
+  }
+
+  async function onSessionReady(uid){
+    if (uid === currentUserId) return; // already bootstrapped for this user
+    currentUserId = uid;
+    setSyncStatus('syncing');
     await reconcile();
     subscribeRealtime();
+    startPolling();
   }
 
-  // Safety net: re-reconcile when tab regains focus (in case realtime dropped)
+  async function bootstrapSync(){
+    if (!window.sb) { setTimeout(bootstrapSync, 100); return; }
+
+    // Listen for auth state changes — fires whenever session becomes available
+    // (initial load, login, token refresh, logout).
+    window.sb.auth.onAuthStateChange((event, session) => {
+      const uid = session?.user?.id || null;
+      if (uid) onSessionReady(uid);
+      else {
+        currentUserId = null;
+        teardownRealtime();
+        if (pollIntervalId) { clearInterval(pollIntervalId); pollIntervalId = null; }
+        setSyncStatus('offline');
+      }
+    });
+
+    // Also try to read the session NOW — onAuthStateChange may not fire
+    // on initial load if the session was already restored before we subscribed.
+    try {
+      const { data: { session } } = await window.sb.auth.getSession();
+      if (session?.user?.id) onSessionReady(session.user.id);
+      else setSyncStatus('offline');
+    } catch (e) {
+      console.warn('[jira sync] getSession failed', e);
+      setSyncStatus('error');
+    }
+  }
+
+  // Manual refresh — exposed for the sync pill onclick
+  window.manualSync = function(){
+    if (!currentUserId) {
+      // Try to re-bootstrap auth in case it never completed
+      bootstrapSync();
+      return;
+    }
+    reconcile();
+    // Also re-check realtime
+    if (realtimeState !== 'subscribed') subscribeRealtime();
+  };
+
+  // Safety net: re-reconcile + verify realtime when tab regains focus
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && currentUserId && !isDemoActive()) scheduleReconcile();
+    if (document.hidden || !currentUserId || isDemoActive()) return;
+    scheduleReconcile();
+    if (realtimeState !== 'subscribed') subscribeRealtime();
   });
 
-  // auth.js may not have created window.sb by the time this script runs.
-  // Wait until it's ready (auth.js loads after this inline script).
-  (function waitForSb(){
-    if (window.sb) { initSync(); return; }
-    setTimeout(waitForSb, 100);
-  })();
+  // Initial render — happens immediately, doesn't wait for sync
+  loadQueries();
+  bootstrapSync();
 </script>
 
 <script src="popup.js"></script>
