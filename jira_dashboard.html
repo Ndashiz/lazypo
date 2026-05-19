@@ -1066,6 +1066,123 @@ function toast(msg, kind){
   toast._t = setTimeout(() => t.classList.remove('show'), 2200);
 }
 
+/* ── Demo mode (admin-only, gated by demo.js) ── */
+window.loadDemoData = function () {
+  // Deterministic-ish dataset matching the mockup totals
+  // (~184 tickets, 12 epics, 8 fixversions, 7 assignees)
+  const BL = [
+    { bl: 'AOA',              count: 52, component: 'AOA',              labels: [] },
+    { bl: 'PB',               count: 41, component: 'PB',               labels: [] },
+    { bl: 'Compliance AML',   count: 28, component: 'Compliance',       labels: ['AML'] },
+    { bl: 'Compliance MIFID', count: 22, component: 'Compliance',       labels: ['MIFID'] },
+    { bl: 'IT',               count: 24, component: 'IT',               labels: [] },
+    { bl: 'Client Center',    count: 17, component: 'Client Center',    labels: [] },
+  ];
+  const ASSIGNEES = [
+    ['M. Dupont', 38], ['L. Martin', 32], ['S. Goffin', 29],
+    ['P. Lambert', 24], ['A. Renard', 22], ['C. Vidal', 21], ['K. Owens', 18],
+  ];
+  const FX = [
+    ['2025.Q4.R1', 34], ['2025.Q4.R2', 28], ['2025.Q4.R3', 31], ['2025.Q4.R4', 26],
+  ];
+  const EPICS = [
+    ['Login Initiative', 'AOA'], ['Onboarding Revamp', 'AOA'], ['KYC Refresh', 'Compliance AML'],
+    ['MIFID Reporting', 'Compliance MIFID'], ['PB Migration', 'PB'], ['Client Portal v2', 'Client Center'],
+    ['Infra Hardening', 'IT'], ['Search Overhaul', 'AOA'], ['Anti-Fraud', 'Compliance AML'],
+    ['Reg Updates', 'Compliance MIFID'], ['Notifications', 'IT'], ['Mobile App', 'PB'],
+  ];
+  const QW_COUNT = 17;
+  const TOTAL_NON_EPIC = BL.reduce((s, b) => s + b.count, 0); // 184
+  // Status mix: 119 Done, 31 In progress, 22 To do (per mockup; total 172 + 12 epics)
+  // We have 184 non-epics in BL; rebalance to keep close to mockup ratios.
+  const targetDone = 119, targetInProg = 31; // rest = 'To Do' = TOTAL_NON_EPIC - 119 - 31 = 34
+  const statusPool = [
+    ...Array(targetDone).fill('Done'),
+    ...Array(targetInProg).fill('In Progress'),
+    ...Array(TOTAL_NON_EPIC - targetDone - targetInProg).fill('To Do'),
+  ];
+  // Assignee pool (multi-pick weighted by count, padded to TOTAL_NON_EPIC)
+  const assigneePool = [];
+  ASSIGNEES.forEach(([name, n]) => { for (let i = 0; i < n; i++) assigneePool.push(name); });
+  while (assigneePool.length < TOTAL_NON_EPIC) assigneePool.push('Unassigned');
+  // FX pool: 34+28+31+26 = 119 covered, 23 orphans (mockup), 42 others — distribute remaining
+  const fxPool = [];
+  FX.forEach(([fx, n]) => { for (let i = 0; i < n; i++) fxPool.push(fx); });
+  const noFxCount = 23;
+  for (let i = 0; i < noFxCount; i++) fxPool.push(''); // empty FX
+  let fxFillIdx = 0;
+  while (fxPool.length < TOTAL_NON_EPIC) { fxPool.push(FX[fxFillIdx % FX.length][0]); fxFillIdx++; }
+  // Shuffle so distribution looks natural
+  function shuffle(arr){ for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random()*(i+1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+  shuffle(statusPool); shuffle(assigneePool); shuffle(fxPool);
+
+  const rows = [];
+  let counter = 1;
+  // Generate non-epic tickets, distributed across business lines
+  let idx = 0;
+  BL.forEach(bucket => {
+    for (let i = 0; i < bucket.count; i++) {
+      const labels = bucket.labels.slice();
+      if (rows.filter(r => r.labels.includes('QW')).length < QW_COUNT && Math.random() < 0.12) labels.push('QW');
+      rows.push({
+        key: `DPNXT-${1000 + counter++}`,
+        type: 'Story',
+        summary: `${bucket.bl} story #${i+1}`,
+        status: statusPool[idx],
+        assignee: assigneePool[idx],
+        components: [bucket.component],
+        labels,
+        fixVersions: fxPool[idx] ? [fxPool[idx]] : [],
+        sprints: [],
+        epicLink: '',
+        epicName: '',
+      });
+      idx++;
+    }
+  });
+  // Ensure we hit exactly QW_COUNT
+  let currentQW = rows.filter(r => r.labels.includes('QW')).length;
+  for (const r of rows) {
+    if (currentQW >= QW_COUNT) break;
+    if (!r.labels.includes('QW')) { r.labels.push('QW'); currentQW++; }
+  }
+
+  // Attach stories to epics roughly proportionally
+  const epicKeys = [];
+  EPICS.forEach(([name, bl], i) => {
+    const ek = `DPNXT-${900 + i}`;
+    epicKeys.push(ek);
+    const bucket = BL.find(b => b.bl === bl) || BL[0];
+    rows.push({
+      key: ek,
+      type: 'Epic',
+      summary: name,
+      status: i < 4 ? 'Done' : (i < 8 ? 'In Progress' : 'To Do'),
+      assignee: ASSIGNEES[i % ASSIGNEES.length][0],
+      components: [bucket.component],
+      labels: bucket.labels.slice(),
+      fixVersions: [FX[i % FX.length][0]],
+      sprints: [],
+      epicLink: '',
+      epicName: '',
+    });
+  });
+  // Round-robin epic link on a portion of stories
+  rows.filter(r => r.type === 'Story').forEach((r, i) => {
+    if (i % 2 === 0) r.epicLink = epicKeys[i % epicKeys.length];
+  });
+
+  STATE.fileName = 'demo_jira_q4_2025.csv';
+  STATE.rows = rows;
+  document.getElementById('dropZone').classList.add('hidden');
+  document.getElementById('dashboard').classList.remove('hidden');
+  document.getElementById('btnReplace').classList.remove('hidden');
+  document.getElementById('topbarFilename').textContent = STATE.fileName + ' · DEMO';
+  renderLoadedHeader();
+  loadPIFromStorage();
+  render();
+};
+
 </script>
 
 <script src="popup.js"></script>
@@ -1073,6 +1190,7 @@ function toast(msg, kind){
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth.js"></script>
 <script>document.addEventListener("DOMContentLoaded", function(){ LazyAuth.requireModule('jira'); });</script>
+<script src="demo.js"></script>
 <script src="focusfm.js"></script>
 </body>
 </html>
