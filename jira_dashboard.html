@@ -1654,8 +1654,13 @@ function buildExportHTML(){
     'script[src*="auth"], script[src*="popup"], script[src*="sidebar"],' +
     ' script[src*="focusfm"], script[src*="supabase"], script[src*="demo"]'
   ).forEach(s => s.remove());
+  // Marker built at RUNTIME so the search string is never written
+  // contiguously in this function's source — otherwise the main inline
+  // script (which contains this very function definition) would match
+  // its own marker and self-strip, leaving the export with no JS at all.
+  const _gateMarker = 'LazyAuth.' + 'requireModule(';
   doc.querySelectorAll('script').forEach(s => {
-    if (s.textContent && s.textContent.includes('LazyAuth.requireModule')) s.remove();
+    if (s.textContent && s.textContent.includes(_gateMarker)) s.remove();
   });
 
   // 2. Strip every sidebar element (sb-burger, sb-overlay, sb-nav,
