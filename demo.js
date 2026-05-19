@@ -11,8 +11,14 @@
 
   var FAB_ID = '_lazypo_demo_fab';
 
+  function isAdmin() {
+    var p = window.LazyAuth && window.LazyAuth.__profile;
+    return !!(p && p.isAdmin);
+  }
+
   function injectFab() {
     if (typeof window.loadDemoData !== 'function') return;
+    if (!isAdmin()) return;
     if (document.getElementById(FAB_ID)) return;
 
     var btn = document.createElement('button');
@@ -81,13 +87,16 @@
     document.body.appendChild(btn);
   }
 
-  /* Retry until loadDemoData is defined (some pages set it inside DOMContentLoaded) */
+  /* Retry until loadDemoData is defined AND user is admin (auth may resolve
+     after this script runs). Re-checks on each auth state change too. */
   function tryInject() {
     injectFab();
     if (!document.getElementById(FAB_ID)) {
       setTimeout(injectFab, 600);
     }
   }
+
+  document.addEventListener('lazypo:auth', tryInject);
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', tryInject);
