@@ -640,6 +640,20 @@ ${exposeCode}
         document.head.appendChild(cl);
       });
 
+      // Snapshot script srcs ALREADY LOADED in the live document BEFORE we
+      // swap the body. Scripts injected via innerHTML don't execute (browser
+      // security feature), but they DO appear in DOM queries — so without
+      // this snapshot the dup-check below would falsely match scripts we
+      // just pasted into the body and skip re-injecting them. That's how a
+      // navigation from a page without VANTA to a page using VANTA ended
+      // up running the inline `VANTA.NET(...)` call before three.js +
+      // vanta.min.js had been actually loaded.
+      const loadedSrcs = new Set(
+        Array.from(document.querySelectorAll('script[src]'))
+          .map(s => s.src)
+          .filter(Boolean)
+      );
+
       // Replace body content
       document.body.innerHTML = doc.body.innerHTML;
 
@@ -651,8 +665,11 @@ ${exposeCode}
       doc.body.querySelectorAll('script').forEach(s => {
         if (s.src) {
           if (SPA_SKIP.some(m => s.src.includes(m))) return;
-          if (document.querySelector(`script[src="${s.src}"]`)) return;
-          tasks.push({ type: 'ext', src: s.src });
+          // Resolve relative srcs against the page URL so the snapshot
+          // (which holds absolute hrefs) compares correctly.
+          const abs = new URL(s.getAttribute('src'), url).href;
+          if (loadedSrcs.has(abs)) return;
+          tasks.push({ type: 'ext', src: abs });
         } else if (s.textContent.trim()) {
           tasks.push({ type: 'inline', code: s.textContent });
         }
