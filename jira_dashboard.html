@@ -193,6 +193,58 @@
     /* ERROR */
     .error-banner{padding:11px 16px;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3);border-radius:10px;color:var(--red-light);font-size:13px;margin-bottom:14px}
 
+    /* SPRINT CONFIG */
+    .sprint-config-label{font-size:12px;color:var(--muted);margin-bottom:10px}
+    .sprint-config-table{display:flex;flex-direction:column;gap:6px}
+    .sprint-config-row{display:grid;grid-template-columns:50px 1fr auto 140px;gap:12px;align-items:center;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px}
+    .sprint-config-row.has-release{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.04)}
+    .scr-num{font-family:'DM Mono',monospace;font-size:13px;font-weight:600;color:var(--accent2)}
+    .sprint-config-row.has-release .scr-num{color:var(--amber-light)}
+    .scr-title{font-size:13px;font-weight:600;color:var(--text)}
+    .scr-dates{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+    .rel-toggle{padding:5px 11px;font-size:11px;border-radius:6px;background:transparent;border:1px solid var(--border2);color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap;font-weight:600;transition:all .2s}
+    .rel-toggle:hover{color:var(--text);border-color:var(--amber)}
+    .rel-toggle.active{background:rgba(245,158,11,.15);border-color:rgba(245,158,11,.5);color:var(--amber-light)}
+    .rel-date{background:var(--bg);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:5px 8px;color:var(--amber-light);font-size:12px;font-family:inherit;outline:none}
+
+    /* TIMELINE w/ release marker */
+    .sprint-pill.release{background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.35);color:var(--amber-light)}
+    .sprint-pill.release.current{background:rgba(245,158,11,.18)}
+
+    /* FX MAP header */
+    .fx-map-header{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
+
+    /* PLANNER VIEW */
+    #epicPlanner{margin-top:6px}
+    .plan-grid{display:flex;gap:0;overflow-x:auto;border:1px solid var(--border);border-radius:10px;padding:8px;background:var(--surface2)}
+    .plan-col{flex:1;min-width:200px;padding:6px 6px 16px;border-right:1px solid var(--border);display:flex;flex-direction:column}
+    .plan-col:last-child{border-right:none}
+    .plan-col.current{background:rgba(59,130,246,.04)}
+    .plan-sprint-head{padding:8px 10px;margin-bottom:10px;border-radius:8px;background:linear-gradient(180deg,rgba(59,130,246,.18),rgba(59,130,246,.04));border:1px solid rgba(59,130,246,.25);text-align:center}
+    .plan-sprint-head.has-release{background:linear-gradient(180deg,rgba(245,158,11,.18),rgba(245,158,11,.04));border-color:rgba(245,158,11,.35)}
+    .psh-num{font-family:'DM Mono',monospace;font-size:13px;font-weight:700;color:var(--accent2)}
+    .plan-sprint-head.has-release .psh-num{color:var(--amber-light)}
+    .psh-dates{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:3px}
+    .psh-rel{margin-top:4px;font-size:9.5px;font-weight:700;color:var(--amber-light);font-family:'DM Mono',monospace;letter-spacing:.5px}
+    .plan-card{background:#1e293b;border:1px solid var(--border2);border-radius:9px;padding:8px 10px;margin-bottom:8px;position:relative;transition:transform .15s,border-color .15s;cursor:default}
+    .plan-card:hover{transform:translateY(-1px);border-color:var(--accent2)}
+    .plan-card.pc-todo{background:#1e293b;border-color:#334155}
+    .plan-card.pc-ongoing{background:linear-gradient(180deg,#3b2f1a,#1e1a12);border-color:rgba(245,158,11,.4)}
+    .plan-card.pc-completed{background:linear-gradient(180deg,#1d3a2a,#0f1a14);border-color:rgba(16,185,129,.4)}
+    .pc-pri{position:absolute;top:-9px;left:-9px;width:22px;height:22px;border-radius:50%;background:#fff;color:var(--navy);font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center;border:2px solid var(--surface);font-family:'DM Sans',sans-serif}
+    .pc-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:#fff;margin:0 0 6px;line-height:1.3;padding-left:18px}
+    .pc-key{display:inline-block;font-size:9.5px;background:rgba(0,0,0,.35);color:#cbd5e1;padding:2px 7px;border-radius:20px;font-family:'DM Mono',monospace;margin-bottom:6px}
+    .pc-progress{display:flex;align-items:center;gap:6px}
+    .pc-progress-bar{flex:1;height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden}
+    .pc-progress-fill{height:100%;background:var(--green-light);border-radius:3px}
+    .pc-todo .pc-progress-fill{background:#94a3b8}
+    .pc-ongoing .pc-progress-fill{background:var(--amber-light)}
+    .pc-completed .pc-progress-fill{background:var(--green-light)}
+    .pc-progress-pct{font-size:10px;font-weight:600;color:var(--muted);font-family:'DM Mono',monospace;min-width:30px;text-align:right}
+
+    .plan-unassigned-label{font-family:'DM Mono',monospace;font-size:11px;color:var(--muted);margin:14px 0 8px;text-transform:uppercase;letter-spacing:.5px}
+    .plan-unassigned{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+
     /* HIDDEN */
     .hidden{display:none !important}
 
@@ -275,6 +327,10 @@
       </div>
       <span id="piSummary" class="pi-summary hidden"></span>
       <div class="action-bar-spacer"></div>
+      <button class="btn" onclick="exportPPTX()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 20h8M12 18v2M7 9h4M7 12h6M7 15h2"/></svg>
+        Export PPTX
+      </button>
       <button class="btn" onclick="exportPDF()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
         Export PDF
@@ -384,15 +440,12 @@
           </div>
           <div class="field">
             <label>Sprint length</label>
-            <select id="piSprintLength">
-              <option value="14" selected>14 days (2 weeks)</option>
-              <option value="7">7 days (1 week)</option>
-              <option value="21">21 days (3 weeks)</option>
-            </select>
+            <div style="padding:9px 0;font-family:'DM Mono',monospace;font-size:13px;color:var(--muted)">14 days (fixed)</div>
           </div>
-          <div id="piMappingRow" class="field-row"></div>
         </div>
-        <div id="piMapping" class="bars" style="margin-top:14px"></div>
+        <div id="sprintConfig" style="margin-top:16px"></div>
+        <div id="piMappingRow" class="field-row" style="margin-top:14px"></div>
+        <div id="piMapping" class="bars" style="margin-top:8px"></div>
       </div>
 
       <div class="card">
@@ -407,14 +460,21 @@
       </div>
 
       <div class="card" style="margin-top:18px">
-        <div class="card-header">
+        <div class="card-header" style="flex-wrap:wrap;gap:10px">
           <div>
             <h3 class="card-title">Epics in this PI</h3>
             <p class="card-sub">Progress = stories Done / total stories of the epic</p>
           </div>
-          <span id="epicCount" class="card-total"></span>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <div class="view-toggle" style="padding:2px">
+              <button class="view-btn active" id="epicViewList" onclick="setEpicView('list')" style="padding:5px 12px;font-size:12px">List</button>
+              <button class="view-btn" id="epicViewPlanner" onclick="setEpicView('planner')" style="padding:5px 12px;font-size:12px">Planner</button>
+            </div>
+            <span id="epicCount" class="card-total"></span>
+          </div>
         </div>
         <div id="epicList" class="epic-list"></div>
+        <div id="epicPlanner" class="hidden"></div>
       </div>
     </div>
 
@@ -431,6 +491,7 @@
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 
 <script>
 /* ═════════════════════════════════════════════════════════
@@ -447,9 +508,10 @@ const STATE = {
   pi: {
     start: null,
     end: null,
-    sprintLength: 14,
   },
-  fxToSprint: {},    // { 'FixVersion' : sprintIndex }
+  sprintMeta: {},    // { 's1': { hasRelease: true, releaseDate: '2025-12-31' } }
+  fxToSprint: {},    // { 'FixVersion' : sprintId }
+  epicView: 'list',  // 'list' | 'planner'
 };
 
 /* ── Column detection — Jira exports vary wildly ── */
@@ -536,6 +598,8 @@ function isInProg(s) { return INPROG_STATUSES.has((s||'').toLowerCase().trim());
 function isTodo(s)   { return !isDone(s) && !isInProg(s); }
 
 /* ── Business line mapping ── */
+const BL_ORDER = ['AOA', 'PB', 'Compliance AML', 'Compliance MIFID', 'IT', 'OneFlow', 'Client Center', 'Other'];
+
 function businessLine(row){
   const comps = row.components.map(c => c.toLowerCase());
   const labels = row.labels.map(l => l.toLowerCase());
@@ -548,9 +612,9 @@ function businessLine(row){
     return 'Compliance';
   }
   if (comps.includes('it')) return 'IT';
+  if (comps.includes('oneflow')) return 'OneFlow';
   if (comps.some(c => c.includes('client center'))) return 'Client Center';
-  // Catch-all: first component capitalized, else 'Other'
-  if (row.components.length > 0) return row.components[0];
+  // Everything else (including no component) → Other bucket
   return 'Other';
 }
 
@@ -672,7 +736,7 @@ function loadPIFromStorage(){
     if (raw && raw.start && raw.end) {
       STATE.pi.start = raw.start;
       STATE.pi.end = raw.end;
-      STATE.pi.sprintLength = raw.sprintLength || 14;
+      STATE.sprintMeta = raw.sprintMeta || {};
     } else {
       // Default: rolling 3-month PI
       const now = new Date();
@@ -682,14 +746,18 @@ function loadPIFromStorage(){
       end.setMonth(end.getMonth() + 2);
       STATE.pi.start = isoDate(start);
       STATE.pi.end = isoDate(end);
+      STATE.sprintMeta = {};
     }
   } catch { /* ignore */ }
   document.getElementById('piStart').value = STATE.pi.start || '';
   document.getElementById('piEnd').value = STATE.pi.end || '';
-  document.getElementById('piSprintLength').value = String(STATE.pi.sprintLength || 14);
 }
 function savePIToStorage(){
-  localStorage.setItem(PI_STORAGE_KEY, JSON.stringify(STATE.pi));
+  localStorage.setItem(PI_STORAGE_KEY, JSON.stringify({
+    start: STATE.pi.start,
+    end: STATE.pi.end,
+    sprintMeta: STATE.sprintMeta,
+  }));
 }
 document.getElementById('piStart').addEventListener('change', e => {
   STATE.pi.start = e.target.value; savePIToStorage(); renderSprintView(); updatePISummary();
@@ -697,39 +765,115 @@ document.getElementById('piStart').addEventListener('change', e => {
 document.getElementById('piEnd').addEventListener('change', e => {
   STATE.pi.end = e.target.value; savePIToStorage(); renderSprintView(); updatePISummary();
 });
-document.getElementById('piSprintLength').addEventListener('change', e => {
-  STATE.pi.sprintLength = parseInt(e.target.value, 10);
-  savePIToStorage();
-  renderSprintView();
-  updatePISummary();
-});
 
 function isoDate(d){ return d.toISOString().slice(0, 10); }
 function parseDate(s){ return s ? new Date(s + 'T00:00:00') : null; }
-function daysBetween(a, b){ return Math.round((b - a) / (1000*60*60*24)); }
+function addDays(s, n){ const d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() + n); return d; }
+function daysBetween(a, b){
+  const da = typeof a === 'string' ? new Date(a + 'T00:00:00') : a;
+  const db = typeof b === 'string' ? new Date(b + 'T00:00:00') : b;
+  return Math.round((db - da) / (1000*60*60*24));
+}
+function fmtS(d){
+  const dd = typeof d === 'string' ? new Date(d + 'T00:00:00') : d;
+  return String(dd.getDate()).padStart(2,'0') + '/' + String(dd.getMonth()+1).padStart(2,'0');
+}
 
+/* Ported from sprintplanner.genSprints(): fixed 14d windows, label
+   "Sprint YYYY.Q.N", and per-sprint release toggle persisted in
+   STATE.sprintMeta. */
 function computeSprints(){
-  const start = parseDate(STATE.pi.start);
-  const end = parseDate(STATE.pi.end);
-  if (!start || !end || end <= start) return [];
-  const days = daysBetween(start, end);
-  const n = Math.max(1, Math.ceil(days / STATE.pi.sprintLength));
+  if (!STATE.pi.start || !STATE.pi.end) return [];
+  const total = daysBetween(STATE.pi.start, STATE.pi.end);
+  if (total < 14) return [];
+  const cnt = Math.floor(total / 14);
+  const startDate = new Date(STATE.pi.start + 'T00:00:00');
+  const yr = startDate.getFullYear();
+  const q = Math.floor(startDate.getMonth() / 3) + 1;
   const sprints = [];
-  for (let i = 0; i < n; i++) {
-    const sStart = new Date(start); sStart.setDate(start.getDate() + i * STATE.pi.sprintLength);
-    const sEnd = new Date(start); sEnd.setDate(start.getDate() + (i+1) * STATE.pi.sprintLength - 1);
-    if (sEnd > end) sEnd.setTime(end.getTime());
-    sprints.push({ index: i+1, start: sStart, end: sEnd });
+  for (let i = 0; i < cnt; i++) {
+    const id = 's' + (i + 1);
+    const sStart = addDays(STATE.pi.start, i * 14);
+    const sEnd = addDays(STATE.pi.start, (i + 1) * 14 - 1);
+    const meta = STATE.sprintMeta[id] || {};
+    sprints.push({
+      id,
+      number: i + 1,
+      label: `Sprint ${yr}.${q}.${i+1}`,
+      start: sStart,
+      end: sEnd,
+      hasRelease: meta.hasRelease === true,
+      releaseDate: meta.releaseDate || '',
+    });
   }
   return sprints;
 }
 
-function currentSprintIndex(sprints){
+function currentSprintId(sprints){
   const now = new Date();
   for (const s of sprints) {
-    if (now >= s.start && now <= s.end) return s.index;
+    if (now >= s.start && now <= s.end) return s.id;
   }
   return null;
+}
+
+/* Toggle "this sprint is a release sprint" and edit its release date. */
+function toggleSprintRelease(sprintId){
+  const meta = STATE.sprintMeta[sprintId] || {};
+  if (meta.hasRelease) {
+    delete STATE.sprintMeta[sprintId];
+  } else {
+    const sprints = computeSprints();
+    const s = sprints.find(x => x.id === sprintId);
+    STATE.sprintMeta[sprintId] = { hasRelease: true, releaseDate: s ? isoDate(s.end) : '' };
+  }
+  savePIToStorage();
+  renderSprintView();
+}
+function setSprintReleaseDate(sprintId, isoStr){
+  const meta = STATE.sprintMeta[sprintId] || { hasRelease: true };
+  meta.hasRelease = true;
+  meta.releaseDate = isoStr;
+  STATE.sprintMeta[sprintId] = meta;
+  savePIToStorage();
+  renderSprintView();
+}
+
+/* Ported from sprintplanner.parseFixMonth() — extracts {month, year} from
+   strings like "Monthly Release April 2026" or "April 2026 Release". */
+const MONTHS_FR = ['janvier','fevrier','mars','avril','mai','juin','juillet','aout','septembre','octobre','novembre','decembre'];
+const MONTHS_EN = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+function parseFixMonth(fix){
+  if (!fix) return null;
+  const s = fix.toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, ''); // strip accents
+  let month = -1, year = -1;
+  for (let i = 0; i < 12; i++) {
+    if (s.includes(MONTHS_EN[i]) || s.includes(MONTHS_FR[i])) { month = i; break; }
+  }
+  const yr = s.match(/\b(20\d{2})\b/);
+  if (yr) year = parseInt(yr[1], 10);
+  if (month < 0 || year < 0) return null;
+  return { month, year };
+}
+
+function autoAssignFixVersions(){
+  const sprints = computeSprints();
+  const fxs = new Set();
+  STATE.rows.forEach(r => r.fixVersions.forEach(v => fxs.add(v)));
+  let matched = 0;
+  fxs.forEach(fx => {
+    if (STATE.fxToSprint[fx]) return; // respect manual override
+    const m = parseFixMonth(fx);
+    if (!m) return;
+    const target = sprints.find(s => {
+      if (!s.hasRelease || !s.releaseDate) return false;
+      const d = new Date(s.releaseDate + 'T00:00:00');
+      return d.getMonth() === m.month && d.getFullYear() === m.year;
+    });
+    if (target) { STATE.fxToSprint[fx] = target.id; matched++; }
+  });
+  return matched;
 }
 
 function updatePISummary(){
@@ -804,7 +948,7 @@ function render(){
   // Business line
   const blAgg = aggregate(nonEpic, r => businessLine(r));
   const blMax = blAgg.length > 0 ? blAgg[0][1] : 1;
-  const blColors = { 'AOA':'bar-purple', 'PB':'bar-purple', 'Compliance AML':'bar-green', 'Compliance MIFID':'bar-green', 'Compliance':'bar-green', 'IT':'bar-gray', 'Client Center':'bar-gray', 'Other':'bar-gray' };
+  const blColors = { 'AOA':'bar-purple', 'PB':'bar-purple', 'Compliance AML':'bar-green', 'Compliance MIFID':'bar-green', 'Compliance':'bar-green', 'IT':'bar-gray', 'OneFlow':'bar-blue', 'Client Center':'bar-gray', 'Other':'bar-gray' };
   const blContainer = document.getElementById('blBars');
   blContainer.innerHTML = '';
   blAgg.forEach(([k, v]) => blContainer.appendChild(barRow(k, v, blMax, blColors[k] || 'bar-blue')));
@@ -864,46 +1008,90 @@ function render(){
 function renderSprintView(){
   updatePISummary();
   const sprints = computeSprints();
+
+  // Timeline pills (with release marker)
   const timeline = document.getElementById('sprintTimeline');
   timeline.innerHTML = '';
-  const cur = currentSprintIndex(sprints);
+  const cur = currentSprintId(sprints);
   document.getElementById('sprintCount').textContent = `${sprints.length} sprints`;
   sprints.forEach(s => {
-    const fmt = (d) => d.toLocaleDateString('en-GB', { day:'2-digit', month:'short' });
-    const pill = el('div', {
-      class: 'sprint-pill' + (s.index === cur ? ' current' : ''),
-      title: `${fmt(s.start)} → ${fmt(s.end)}`,
-    }, [`S${s.index}`]);
+    const cls = 'sprint-pill' + (s.id === cur ? ' current' : '') + (s.hasRelease ? ' release' : '');
+    const pill = el('div', { class: cls, title: `${fmtS(s.start)} → ${fmtS(s.end)}${s.hasRelease ? ' · release ' + (s.releaseDate ? fmtS(s.releaseDate) : '?') : ''}` }, [
+      el('div', { text: 'S' + s.number, style: 'font-weight:600' }),
+      el('div', { style: 'font-size:9px;opacity:.7;margin-top:2px', text: `${fmtS(s.start)}–${fmtS(s.end)}` }),
+      s.hasRelease ? el('div', { style: 'font-size:9px;color:#fbbf24;margin-top:3px;font-weight:600', text: '⬤ REL' }) : null,
+    ]);
     timeline.appendChild(pill);
   });
 
-  // FixVersion → Sprint mapping (in-memory)
+  // Sprint config (release toggle + release date per sprint)
+  const cfg = document.getElementById('sprintConfig');
+  cfg.innerHTML = '';
+  if (sprints.length > 0) {
+    cfg.appendChild(el('div', { class: 'sprint-config-label', text: 'Mark sprints that close a release — auto-assign uses release months to match FixVersions like "Monthly Release April 2026".' }));
+    const table = el('div', { class: 'sprint-config-table' });
+    sprints.forEach(s => {
+      const row = el('div', { class: 'sprint-config-row' + (s.hasRelease ? ' has-release' : '') });
+      row.appendChild(el('div', { class: 'scr-num', text: 'S' + s.number }));
+      row.appendChild(el('div', { class: 'scr-label' }, [
+        el('div', { class: 'scr-title', text: s.label }),
+        el('div', { class: 'scr-dates', text: `${fmtS(s.start)} → ${fmtS(s.end)}` }),
+      ]));
+      const tog = el('button', {
+        class: 'rel-toggle' + (s.hasRelease ? ' active' : ''),
+        onclick: () => toggleSprintRelease(s.id),
+      }, [s.hasRelease ? '✓ Release' : '+ Mark release']);
+      row.appendChild(tog);
+      if (s.hasRelease) {
+        const dateInp = el('input', { type: 'date', value: s.releaseDate || isoDate(s.end), class: 'rel-date' });
+        dateInp.addEventListener('change', e => setSprintReleaseDate(s.id, e.target.value));
+        row.appendChild(dateInp);
+      } else {
+        row.appendChild(el('div', {}));
+      }
+      table.appendChild(row);
+    });
+    cfg.appendChild(table);
+  }
+
+  // FixVersion → Sprint mapping
   const fxs = new Set();
   STATE.rows.forEach(r => r.fixVersions.forEach(v => fxs.add(v)));
   const mappingEl = document.getElementById('piMapping');
   mappingEl.innerHTML = '';
   if (sprints.length > 0 && fxs.size > 0) {
+    const header = el('div', { class: 'fx-map-header' }, [
+      el('span', { text: 'FixVersion → Sprint mapping (not persisted, set each session)' }),
+      el('button', { class: 'btn', style: 'padding:5px 10px;font-size:11px', onclick: () => {
+        const n = autoAssignFixVersions();
+        renderSprintView();
+        toast(n > 0 ? `Auto-assigned ${n} FixVersion${n>1?'s':''}` : 'No matches — make sure release dates are set');
+      } }, [
+        el('span', { text: '✨ Auto-assign' }),
+      ]),
+    ]);
+    document.getElementById('piMappingRow').innerHTML = '';
+    document.getElementById('piMappingRow').appendChild(header);
     [...fxs].sort().forEach(fx => {
-      const row = el('div', { class: 'bar-row', style: 'grid-template-columns:1fr 140px;align-items:center' });
+      const row = el('div', { class: 'bar-row', style: 'grid-template-columns:1fr 160px;align-items:center' });
       row.appendChild(el('div', { class: 'bar-label', text: fx }));
       const sel = el('select');
       sel.appendChild(el('option', { value: '', text: '— no sprint —' }));
       sprints.forEach(s => {
-        const opt = el('option', { value: String(s.index), text: `Sprint ${s.index}` });
-        if (STATE.fxToSprint[fx] === s.index) opt.selected = true;
+        const opt = el('option', { value: s.id, text: `S${s.number} · ${s.label}` });
+        if (STATE.fxToSprint[fx] === s.id) opt.selected = true;
         sel.appendChild(opt);
       });
       sel.style.cssText = 'background:var(--bg);border:1px solid var(--border2);border-radius:6px;padding:5px 8px;color:var(--text);font-size:12px;font-family:inherit;outline:none';
       sel.addEventListener('change', () => {
         const v = sel.value;
-        if (v) STATE.fxToSprint[fx] = parseInt(v, 10);
+        if (v) STATE.fxToSprint[fx] = v;
         else delete STATE.fxToSprint[fx];
         renderSprintEpics(sprints);
       });
       row.appendChild(sel);
       mappingEl.appendChild(row);
     });
-    document.getElementById('piMappingRow').textContent = 'FixVersion → Sprint mapping (not persisted, set each session)';
   } else {
     document.getElementById('piMappingRow').textContent = '';
   }
@@ -911,22 +1099,11 @@ function renderSprintView(){
   renderSprintEpics(sprints);
 }
 
-function renderSprintEpics(sprints){
+/* Build a uniform "augmented epic" object from a row + its stories. Used by
+   both the list view and the planner view. */
+function buildEpicViews(sprints){
   const allRows = STATE.rows;
   const epics = allRows.filter(r => (r.type || '').toLowerCase() === 'epic');
-  const epicList = document.getElementById('epicList');
-  epicList.innerHTML = '';
-
-  if (epics.length === 0) {
-    epicList.appendChild(el('div', { class: 'status-row muted' }, [
-      el('span', { class: 'status-label', text: 'No epics found in this export.' }),
-      el('span', { class: 'status-count', text: '0' }),
-    ]));
-    document.getElementById('epicCount').textContent = '0 epics';
-    return;
-  }
-
-  // Stories by epic link (use epic key or epic name)
   const storiesByEpic = new Map();
   allRows.filter(r => (r.type || '').toLowerCase() !== 'epic').forEach(s => {
     const ek = s.epicLink || s.epicName;
@@ -934,42 +1111,147 @@ function renderSprintEpics(sprints){
     if (!storiesByEpic.has(ek)) storiesByEpic.set(ek, []);
     storiesByEpic.get(ek).push(s);
   });
-
-  document.getElementById('epicCount').textContent = `${epics.length} epics`;
-
-  epics.forEach(ep => {
+  const sprintNumberById = new Map(sprints.map(s => [s.id, s.number]));
+  return epics.map((ep, i) => {
     const stories = storiesByEpic.get(ep.key) || storiesByEpic.get(ep.summary) || [];
     const total = stories.length;
     const done = stories.filter(s => isDone(s.status)).length;
+    const inProg = stories.filter(s => isInProg(s.status)).length;
     const pct = total > 0 ? Math.round((done/total)*100) : 0;
     let bandClass = 'epic-low';
     if (pct >= 90) bandClass = 'epic-success';
     else if (pct >= 50) bandClass = 'epic-info';
     else if (pct >= 25) bandClass = 'epic-warn';
-
-    const epicSprints = [...new Set(ep.fixVersions.map(fx => STATE.fxToSprint[fx]).filter(Boolean))]
-      .sort((a, b) => a - b).map(i => 'S' + i).join(', ') || '—';
-    const bl = businessLine(ep);
-    const meta = el('div', { class: 'epic-meta' }, [
-      el('span', { text: 'Sprint(s): ' + epicSprints }),
-      el('span', { text: 'BL: ' + bl }),
-      el('span', { text: `${total} stories` }),
-    ]);
-
-    const row = el('div', { class: `epic-row ${bandClass}` }, [
-      el('div', {}, [
-        el('div', { class: 'epic-name', text: ep.summary || ep.key }),
-        meta,
-      ]),
-      el('div', { class: 'epic-progress-wrap' }, [
-        el('div', { class: 'epic-progress-bar' }, [
-          el('div', { class: 'epic-progress-fill', style: `width:${pct}%` }),
-        ]),
-        el('div', { class: 'epic-progress-pct', text: pct + '%' }),
-      ]),
-    ]);
-    epicList.appendChild(row);
+    // Derive lifecycle status (planner-style): completed / ongoing / todo
+    let lifeStatus = 'todo';
+    if (total > 0 && done === total) lifeStatus = 'completed';
+    else if (inProg > 0 || done > 0) lifeStatus = 'ongoing';
+    // Sprint IDs from FixVersions
+    const sprintIds = [...new Set(ep.fixVersions.map(fx => STATE.fxToSprint[fx]).filter(Boolean))];
+    const sprintNumbers = sprintIds.map(id => sprintNumberById.get(id)).filter(n => n).sort((a,b) => a-b);
+    return {
+      raw: ep,
+      number: i + 1,
+      key: ep.key,
+      name: ep.summary || ep.key,
+      bl: businessLine(ep),
+      stories,
+      total, done, inProg, pct,
+      bandClass, lifeStatus,
+      sprintIds, sprintNumbers,
+    };
   });
+}
+
+function renderSprintEpics(sprints){
+  const epicData = buildEpicViews(sprints);
+  document.getElementById('epicCount').textContent = `${epicData.length} epics`;
+
+  // Reflect the active toggle button state
+  document.getElementById('epicViewList').classList.toggle('active', STATE.epicView === 'list');
+  document.getElementById('epicViewPlanner').classList.toggle('active', STATE.epicView === 'planner');
+  document.getElementById('epicList').classList.toggle('hidden', STATE.epicView !== 'list');
+  document.getElementById('epicPlanner').classList.toggle('hidden', STATE.epicView !== 'planner');
+
+  // ── List view ──
+  const list = document.getElementById('epicList');
+  list.innerHTML = '';
+  if (epicData.length === 0) {
+    list.appendChild(el('div', { class: 'status-row muted' }, [
+      el('span', { class: 'status-label', text: 'No epics found in this export.' }),
+      el('span', { class: 'status-count', text: '0' }),
+    ]));
+  } else {
+    epicData.forEach(ep => {
+      const epicSprintsStr = ep.sprintNumbers.length ? ep.sprintNumbers.map(n => 'S'+n).join(', ') : '—';
+      const meta = el('div', { class: 'epic-meta' }, [
+        el('span', { text: 'Sprint(s): ' + epicSprintsStr }),
+        el('span', { text: 'BL: ' + ep.bl }),
+        el('span', { text: `${ep.total} stories` }),
+      ]);
+      const row = el('div', { class: `epic-row ${ep.bandClass}` }, [
+        el('div', {}, [
+          el('div', { class: 'epic-name', text: ep.name }),
+          meta,
+        ]),
+        el('div', { class: 'epic-progress-wrap' }, [
+          el('div', { class: 'epic-progress-bar' }, [
+            el('div', { class: 'epic-progress-fill', style: `width:${ep.pct}%` }),
+          ]),
+          el('div', { class: 'epic-progress-pct', text: ep.pct + '%' }),
+        ]),
+      ]);
+      list.appendChild(row);
+    });
+  }
+
+  // ── Planner view (columns per sprint) ──
+  renderPlannerView(sprints, epicData);
+}
+
+function renderPlannerView(sprints, epicData){
+  const plan = document.getElementById('epicPlanner');
+  plan.innerHTML = '';
+  if (sprints.length === 0) {
+    plan.appendChild(el('div', { class: 'status-row muted' }, [
+      el('span', { class: 'status-label', text: 'Define your PI dates above to build the planner view.' }),
+    ]));
+    return;
+  }
+  const cur = currentSprintId(sprints);
+  // Build a bucket for each sprint + an "unassigned" bucket
+  const buckets = {};
+  sprints.forEach(s => buckets[s.id] = []);
+  buckets['unassigned'] = [];
+  epicData.forEach(ep => {
+    if (ep.sprintIds.length === 0) {
+      buckets['unassigned'].push({ ep, full: true });
+    } else {
+      ep.sprintIds.forEach(sid => {
+        if (buckets[sid]) buckets[sid].push({ ep, full: ep.sprintIds.length === 1 });
+      });
+    }
+  });
+
+  const grid = el('div', { class: 'plan-grid' });
+  sprints.forEach(s => {
+    const col = el('div', { class: 'plan-col' + (s.id === cur ? ' current' : '') });
+    const head = el('div', { class: 'plan-sprint-head' + (s.hasRelease ? ' has-release' : '') });
+    head.appendChild(el('div', { class: 'psh-num', text: 'S' + s.number }));
+    head.appendChild(el('div', { class: 'psh-dates', text: `${fmtS(s.start)} → ${fmtS(s.end)}` }));
+    if (s.hasRelease) head.appendChild(el('div', { class: 'psh-rel', text: 'Release · ' + (s.releaseDate ? fmtS(s.releaseDate) : '?') }));
+    col.appendChild(head);
+    buckets[s.id].forEach(item => col.appendChild(plannerCard(item.ep)));
+    grid.appendChild(col);
+  });
+  plan.appendChild(grid);
+
+  // Unassigned epics shown at the bottom
+  if (buckets['unassigned'].length > 0) {
+    plan.appendChild(el('div', { class: 'plan-unassigned-label', text: 'Epics not yet assigned to a sprint' }));
+    const wrap = el('div', { class: 'plan-unassigned' });
+    buckets['unassigned'].forEach(item => wrap.appendChild(plannerCard(item.ep)));
+    plan.appendChild(wrap);
+  }
+}
+
+function plannerCard(ep){
+  const card = el('div', { class: `plan-card pc-${ep.lifeStatus}`, title: `${ep.name}\n${ep.total} stories · ${ep.pct}%` });
+  card.appendChild(el('div', { class: 'pc-pri', text: String(ep.number) }));
+  card.appendChild(el('div', { class: 'pc-title', text: ep.name.length > 40 ? ep.name.slice(0, 38) + '…' : ep.name }));
+  card.appendChild(el('span', { class: 'pc-key', text: ep.key || ep.bl }));
+  card.appendChild(el('div', { class: 'pc-progress' }, [
+    el('div', { class: 'pc-progress-bar' }, [
+      el('div', { class: 'pc-progress-fill', style: `width:${ep.pct}%` }),
+    ]),
+    el('div', { class: 'pc-progress-pct', text: ep.pct + '%' }),
+  ]));
+  return card;
+}
+
+function setEpicView(v){
+  STATE.epicView = v;
+  renderSprintView();
 }
 
 /* ── Dropdown ── */
@@ -985,6 +1267,141 @@ document.addEventListener('click', e => {
     document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
   }
 });
+
+/* ── PPTX export — same slides as sprintplanner.html ── */
+function exportPPTX(){
+  if (typeof PptxGenJS === 'undefined') {
+    toast('PPTX library not loaded — check your network.', 'err');
+    return;
+  }
+  const sprints = computeSprints();
+  const epics = buildEpicViews(sprints);
+  if (epics.length === 0) { toast('No epics to export', 'err'); return; }
+
+  toast('Generating PPTX…');
+  try {
+    const pres = new PptxGenJS();
+    pres.layout = 'LAYOUT_WIDE'; // 13.333 x 7.5"
+    pres.author = 'LazyPO';
+    pres.title = 'Jira Dashboard';
+
+    const NAVY = '123269', WHITE = 'FFFFFF', GOLD = 'FFC000', GREEN = '70AD47', RED = 'FF0000', LIGHT = 'F2F2F2';
+    const statusColors = {
+      todo:      { bg: WHITE, text: NAVY  },
+      ongoing:   { bg: GOLD,  text: NAVY  },
+      completed: { bg: GREEN, text: WHITE },
+    };
+
+    /* Feature slides — 6 epics per slide, table layout */
+    const PER = 6;
+    for (let p = 0; p < Math.ceil(epics.length / PER); p++) {
+      const sl = pres.addSlide();
+      sl.addText('Features', { x: 0.5, y: 0.3, w: 12, h: 0.5, fontSize: 24, bold: true, color: NAVY, fontFace: 'Arial' });
+      const chunk = epics.slice(p * PER, (p + 1) * PER);
+      const head = [
+        { text: '#',             options: { bold: true, color: WHITE, fill: NAVY, align: 'center', valign: 'middle', fontFace: 'Arial' } },
+        { text: 'EPIC NAME',     options: { bold: true, color: WHITE, fill: NAVY, align: 'left',   valign: 'middle', fontFace: 'Arial' } },
+        { text: 'KEY',           options: { bold: true, color: WHITE, fill: NAVY, align: 'left',   valign: 'middle', fontFace: 'Arial' } },
+        { text: 'BUSINESS LINE', options: { bold: true, color: WHITE, fill: NAVY, align: 'left',   valign: 'middle', fontFace: 'Arial' } },
+        { text: 'STORIES',       options: { bold: true, color: WHITE, fill: NAVY, align: 'center', valign: 'middle', fontFace: 'Arial' } },
+        { text: 'PROGRESS',      options: { bold: true, color: WHITE, fill: NAVY, align: 'center', valign: 'middle', fontFace: 'Arial' } },
+      ];
+      const rows = [head];
+      chunk.forEach((ep, i) => {
+        const fill = i % 2 === 0 ? WHITE : LIGHT;
+        rows.push([
+          { text: String(ep.number),    options: { fill, align: 'center', valign: 'middle', fontFace: 'Arial' } },
+          { text: ep.name,              options: { fill, align: 'left',   valign: 'middle', fontFace: 'Arial' } },
+          { text: ep.key || '',         options: { fill, align: 'left',   valign: 'middle', fontFace: 'Arial', italic: true } },
+          { text: ep.bl,                options: { fill, align: 'left',   valign: 'middle', fontFace: 'Arial' } },
+          { text: `${ep.done}/${ep.total}`, options: { fill, align: 'center', valign: 'middle', fontFace: 'Arial' } },
+          { text: ep.pct + '%',         options: { fill, align: 'center', valign: 'middle', fontFace: 'Arial', bold: true,
+                                                    color: ep.lifeStatus === 'completed' ? GREEN : (ep.lifeStatus === 'ongoing' ? 'B45309' : '64748B') } },
+        ]);
+      });
+      sl.addTable(rows, {
+        x: 0.5, y: 1.0, w: 12.3, h: 5.5,
+        colW: [0.5, 4.5, 1.5, 2.4, 1.3, 2.1],
+        rowH: 0.55,
+        border: { type: 'solid', pt: 0.5, color: 'E2E8F0' },
+        fontSize: 10,
+      });
+      sl.addText(`Page ${p+1} / ${Math.ceil(epics.length/PER)}`, { x: 11.5, y: 7.0, w: 1.5, h: 0.3, fontSize: 9, color: '94A3B8', align: 'right', fontFace: 'Arial' });
+    }
+
+    /* Roadmap slide — sprint columns + epic cards */
+    if (sprints.length > 0) {
+      const sl = pres.addSlide();
+      sl.addText('Roadmap', { x: 0.5, y: 0.3, w: 12, h: 0.5, fontSize: 24, bold: true, color: NAVY, fontFace: 'Arial' });
+
+      const marginX = 0.5, marginY = 1.0;
+      const totalW = 12.3;
+      const headerH = 0.6;
+      const colW = totalW / sprints.length;
+      // Sprint headers
+      sprints.forEach((s, i) => {
+        const x = marginX + i * colW;
+        sl.addShape(pres.shapes.RECTANGLE, { x, y: marginY, w: colW - 0.05, h: headerH, fill: { color: s.hasRelease ? GOLD : NAVY }, line: { color: s.hasRelease ? GOLD : NAVY, width: 0 } });
+        sl.addText(`S${s.number}`, { x, y: marginY + 0.04, w: colW - 0.05, h: 0.3, fontSize: 13, bold: true, color: s.hasRelease ? NAVY : WHITE, align: 'center', fontFace: 'Arial' });
+        sl.addText(`${fmtS(s.start)} – ${fmtS(s.end)}`, { x, y: marginY + 0.32, w: colW - 0.05, h: 0.25, fontSize: 9, color: s.hasRelease ? NAVY : 'CBD5E1', align: 'center', fontFace: 'Arial' });
+        if (s.hasRelease) {
+          sl.addShape(pres.shapes.RECTANGLE, { x: x + colW - 0.85, y: marginY - 0.18, w: 0.8, h: 0.22, fill: { color: RED }, line: { color: RED, width: 0 } });
+          sl.addText('RELEASE', { x: x + colW - 0.85, y: marginY - 0.18, w: 0.8, h: 0.22, fontSize: 8, bold: true, color: WHITE, align: 'center', valign: 'middle', fontFace: 'Arial' });
+        }
+      });
+
+      // Epic cards within their sprint column
+      const cardY0 = marginY + headerH + 0.25;
+      const cardH = 0.65;
+      const cardGap = 0.12;
+      // Buckets indexed by sprint id
+      const buckets = {};
+      sprints.forEach(s => buckets[s.id] = []);
+      epics.forEach(ep => { ep.sprintIds.forEach(sid => { if (buckets[sid]) buckets[sid].push(ep); }); });
+
+      sprints.forEach((s, i) => {
+        const x = marginX + i * colW + 0.05;
+        const w = colW - 0.15;
+        buckets[s.id].slice(0, 8).forEach((ep, j) => {
+          const y = cardY0 + j * (cardH + cardGap);
+          const sc = statusColors[ep.lifeStatus] || statusColors.todo;
+          sl.addShape(pres.shapes.RECTANGLE, { x, y, w, h: cardH, fill: { color: sc.bg }, line: { color: 'CBD5E1', width: 0.5 } });
+          // Number circle (top-left)
+          sl.addShape(pres.shapes.OVAL, { x: x - 0.12, y: y - 0.12, w: 0.28, h: 0.28, fill: { color: WHITE }, line: { color: NAVY, width: 1 } });
+          sl.addText(String(ep.number), { x: x - 0.12, y: y - 0.12, w: 0.28, h: 0.28, fontSize: 9, bold: true, color: NAVY, align: 'center', valign: 'middle', fontFace: 'Arial' });
+          // Title
+          const title = ep.name.length > 35 ? ep.name.slice(0, 33) + '…' : ep.name;
+          sl.addText(title, { x: x + 0.18, y: y + 0.03, w: w - 0.2, h: 0.3, fontSize: 9, bold: true, color: sc.text, align: 'left', valign: 'top', fontFace: 'Arial' });
+          // Key + pct (bottom)
+          sl.addText(`${ep.key || ep.bl}  ·  ${ep.pct}%`, { x: x + 0.18, y: y + cardH - 0.28, w: w - 0.2, h: 0.22, fontSize: 7.5, italic: true, color: sc.text, align: 'left', valign: 'bottom', fontFace: 'Arial' });
+        });
+      });
+
+      // Legend bottom-right
+      const legY = 6.85;
+      let legX = 8.5;
+      [
+        { lbl: 'To do',     bg: WHITE,  text: NAVY },
+        { lbl: 'Ongoing',   bg: GOLD,   text: NAVY },
+        { lbl: 'Completed', bg: GREEN,  text: WHITE },
+      ].forEach(item => {
+        sl.addShape(pres.shapes.RECTANGLE, { x: legX, y: legY, w: 0.18, h: 0.18, fill: { color: item.bg }, line: { color: '94A3B8', width: 0.5 } });
+        sl.addText(item.lbl, { x: legX + 0.2, y: legY - 0.02, w: 1.3, h: 0.22, fontSize: 9, color: '475569', fontFace: 'Arial' });
+        legX += 1.5;
+      });
+    }
+
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const ts = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}_${pad(now.getHours())}h${pad(now.getMinutes())}`;
+    pres.writeFile({ fileName: `jira_dashboard_${ts}.pptx` })
+      .then(() => toast('PPTX exported', 'ok'))
+      .catch(e => { console.warn('PPTX error', e); toast('PPTX export failed', 'err'); });
+  } catch (e) {
+    console.warn('PPTX exception', e);
+    toast('PPTX export failed: ' + (e.message || e), 'err');
+  }
+}
 
 /* ── PDF export ── */
 function exportPDF(){
@@ -1071,25 +1488,30 @@ window.loadDemoData = function () {
   // Deterministic-ish dataset matching the mockup totals
   // (~184 tickets, 12 epics, 8 fixversions, 7 assignees)
   const BL = [
-    { bl: 'AOA',              count: 52, component: 'AOA',              labels: [] },
-    { bl: 'PB',               count: 41, component: 'PB',               labels: [] },
-    { bl: 'Compliance AML',   count: 28, component: 'Compliance',       labels: ['AML'] },
-    { bl: 'Compliance MIFID', count: 22, component: 'Compliance',       labels: ['MIFID'] },
-    { bl: 'IT',               count: 24, component: 'IT',               labels: [] },
-    { bl: 'Client Center',    count: 17, component: 'Client Center',    labels: [] },
+    { bl: 'AOA',              count: 48, component: 'AOA',              labels: [] },
+    { bl: 'PB',               count: 38, component: 'PB',               labels: [] },
+    { bl: 'Compliance AML',   count: 26, component: 'Compliance',       labels: ['AML'] },
+    { bl: 'Compliance MIFID', count: 20, component: 'Compliance',       labels: ['MIFID'] },
+    { bl: 'IT',               count: 22, component: 'IT',               labels: [] },
+    { bl: 'OneFlow',          count: 14, component: 'oneflow',          labels: [] },
+    { bl: 'Client Center',    count: 14, component: 'Client Center',    labels: [] },
+    { bl: 'Other',            count:  8, component: 'Risk Management',  labels: [] },
   ];
   const ASSIGNEES = [
     ['M. Dupont', 38], ['L. Martin', 32], ['S. Goffin', 29],
     ['P. Lambert', 24], ['A. Renard', 22], ['C. Vidal', 21], ['K. Owens', 18],
   ];
   const FX = [
-    ['2025.Q4.R1', 34], ['2025.Q4.R2', 28], ['2025.Q4.R3', 31], ['2025.Q4.R4', 26],
+    ['Monthly Release October 2025',  34],
+    ['Monthly Release November 2025', 28],
+    ['Monthly Release December 2025', 31],
+    ['Monthly Release January 2026',  26],
   ];
   const EPICS = [
     ['Login Initiative', 'AOA'], ['Onboarding Revamp', 'AOA'], ['KYC Refresh', 'Compliance AML'],
     ['MIFID Reporting', 'Compliance MIFID'], ['PB Migration', 'PB'], ['Client Portal v2', 'Client Center'],
     ['Infra Hardening', 'IT'], ['Search Overhaul', 'AOA'], ['Anti-Fraud', 'Compliance AML'],
-    ['Reg Updates', 'Compliance MIFID'], ['Notifications', 'IT'], ['Mobile App', 'PB'],
+    ['OneFlow Automation', 'OneFlow'], ['Risk Dashboard', 'Other'], ['Mobile App', 'PB'],
   ];
   const QW_COUNT = 17;
   const TOTAL_NON_EPIC = BL.reduce((s, b) => s + b.count, 0); // 184
