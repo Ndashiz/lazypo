@@ -12,24 +12,30 @@ disabling JS or removing the overlay in DevTools.
    assets `.js`/`.css`/`.svg`/`.ico`/etc.) pass through to the origin
    (GitHub Pages) untouched.
 3. For everything else, the Worker reads the `lazypo_jwt` cookie, then:
-   - verifies the JWT signature locally using the Supabase project's
-     HS256 secret (no Supabase round-trip),
-   - rejects expired or malformed tokens,
-   - on success, forwards the request to GitHub Pages.
+   - fetches the project's public JWKS (cached 1h, then `cf cacheEverything`)
+   - verifies the **ES256** signature locally against the matching `kid`
+   - rejects expired or malformed tokens
+   - on success, forwards the request to GitHub Pages
 4. On failure, returns a 302 to `/lazypo/login.html?return_to=<path>`.
 
 The cookie itself is set by `auth.js` after a successful Supabase login
 and refreshed on `TOKEN_REFRESHED` events. It is cleared on signOut.
 
-JWT verification results are cached in `caches.default` for 60s per
-token to make repeat hits free.
+JWT validity results are cached in `caches.default` for 60s per token.
+JWKS is cached 1h with automatic refresh on `kid` miss (handles key
+rotation transparently).
 
 ## One-time setup
 
 You need:
 - Cloudflare account that owns the `ndashiz.be` zone.
 - Node.js 18+ locally.
-- The Supabase JWT secret (Dashboard → Project Settings → API → JWT Secret).
+
+**Note**: this Worker uses Supabase's **asymmetric JWT signing keys (ES256)**.
+The public JWKS is fetched at runtime from
+`https://<project-ref>.supabase.co/auth/v1/.well-known/jwks.json`.
+**No JWT secret is needed** — only the public project reference (already
+in client code).
 
 ```bash
 cd worker
@@ -37,12 +43,12 @@ npm i -g wrangler        # or use `npx wrangler` for one-offs
 
 wrangler login           # opens browser, one-time auth
 
-# Paste your Supabase JWT Secret when prompted. It will be stored
-# encrypted on Cloudflare — never committed to git.
-wrangler secret put SUPABASE_JWT_SECRET
-
 wrangler deploy          # builds and uploads worker.js to the route
 ```
+
+That's it. The `SUPABASE_PROJECT_REF` is in `wrangler.toml` as a public
+`[vars]` (not a secret) since the project ref is already exposed in
+client-side code.
 
 Verify the deploy:
 
@@ -99,6 +105,11 @@ gate logic itself is testable (try with/without a valid JWT in the
   The cookie itself is cleared by `auth.js` locally, so the user can't
   use it from the same browser. Cross-device revocation will fully
   propagate in ≤1h. Acceptable for our threat model.
+- **JWKS rotation**: if Supabase rotates signing keys, the Worker
+  refreshes the JWKS on the first `kid` miss (no manual action needed).
+  The 1h JWKS cache means a rotated key might be picked up up to 1h
+  late by some edges. Not a security issue — old `kid` lookups fail
+  closed.
 - **Module-level gate (`requireModule('jira')`) stays client-side**:
   this Worker only checks "is the user authenticated", not "does the
   user have access to module X". An authenticated user could in
